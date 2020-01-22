@@ -11,14 +11,14 @@
    </rect>
   </property>
   <property name="windowTitle">
-   <string>MainWindow</string>
+   <string>MIDI to OBS Configurator</string>
   </property>
   <widget class="QWidget" name="centralwidget">
    <widget class="QPushButton" name="add">
     <property name="geometry">
      <rect>
-      <x>680</x>
-      <y>20</y>
+      <x>540</x>
+      <y>360</y>
       <width>75</width>
       <height>23</height>
      </rect>
@@ -27,31 +27,21 @@
      <string>Add Action</string>
     </property>
    </widget>
-   <widget class="QListWidget" name="listWidget">
+   <widget class="QComboBox" name="Combo_InputDevices">
     <property name="geometry">
      <rect>
-      <x>10</x>
-      <y>30</y>
-      <width>256</width>
-      <height>192</height>
-     </rect>
-    </property>
-   </widget>
-   <widget class="QComboBox" name="comboBox">
-    <property name="geometry">
-     <rect>
-      <x>300</x>
-      <y>20</y>
+      <x>540</x>
+      <y>280</y>
       <width>211</width>
       <height>22</height>
      </rect>
     </property>
    </widget>
-   <widget class="QComboBox" name="comboBox_2">
+   <widget class="QComboBox" name="Combo_OutputDevices">
     <property name="geometry">
      <rect>
-      <x>300</x>
-      <y>50</y>
+      <x>540</x>
+      <y>330</y>
       <width>211</width>
       <height>22</height>
      </rect>
@@ -60,10 +50,10 @@
    <widget class="QLabel" name="label">
     <property name="geometry">
      <rect>
-      <x>520</x>
-      <y>50</y>
-      <width>47</width>
-      <height>14</height>
+      <x>550</x>
+      <y>310</y>
+      <width>131</width>
+      <height>16</height>
      </rect>
     </property>
     <property name="text">
@@ -86,21 +76,21 @@
    <widget class="QLabel" name="label_3">
     <property name="geometry">
      <rect>
-      <x>520</x>
-      <y>20</y>
-      <width>47</width>
-      <height>14</height>
+      <x>540</x>
+      <y>260</y>
+      <width>101</width>
+      <height>16</height>
      </rect>
     </property>
     <property name="text">
      <string>Input Device</string>
     </property>
    </widget>
-   <widget class="QPushButton" name="pushButton">
+   <widget class="QPushButton" name="btn_deleteAction">
     <property name="geometry">
      <rect>
-      <x>680</x>
-      <y>50</y>
+      <x>630</x>
+      <y>360</y>
       <width>75</width>
       <height>23</height>
      </rect>
@@ -112,23 +102,23 @@
    <widget class="QFrame" name="frame">
     <property name="geometry">
      <rect>
-      <x>10</x>
-      <y>230</y>
+      <x>20</x>
+      <y>240</y>
       <width>511</width>
       <height>281</height>
      </rect>
     </property>
     <property name="frameShape">
-     <enum>QFrame::StyledPanel</enum>
+     <enum>QFrame::Box</enum>
     </property>
     <property name="frameShadow">
-     <enum>QFrame::Raised</enum>
+     <enum>QFrame::Sunken</enum>
     </property>
-    <widget class="QPushButton" name="pushButton_2">
+    <widget class="QPushButton" name="btn_RecordInput">
      <property name="geometry">
       <rect>
-       <x>400</x>
-       <y>40</y>
+       <x>10</x>
+       <y>90</y>
        <width>75</width>
        <height>23</height>
       </rect>
@@ -136,8 +126,17 @@
      <property name="text">
       <string>Record Input</string>
      </property>
+     <property name="checkable">
+      <bool>true</bool>
+     </property>
+     <property name="autoDefault">
+      <bool>false</bool>
+     </property>
+     <property name="default">
+      <bool>false</bool>
+     </property>
     </widget>
-    <widget class="QLineEdit" name="lineEdit">
+    <widget class="QLineEdit" name="DevID">
      <property name="geometry">
       <rect>
        <x>10</x>
@@ -147,25 +146,35 @@
       </rect>
      </property>
     </widget>
-    <widget class="QLineEdit" name="lineEdit_2">
+    <widget class="QLineEdit" name="addr">
      <property name="geometry">
       <rect>
-       <x>130</x>
+       <x>250</x>
        <y>40</y>
        <width>113</width>
        <height>20</height>
       </rect>
      </property>
     </widget>
-    <widget class="QComboBox" name="comboBox_3">
+    <widget class="QComboBox" name="InputTypeSelector">
      <property name="geometry">
       <rect>
-       <x>250</x>
+       <x>440</x>
        <y>40</y>
        <width>62</width>
        <height>22</height>
       </rect>
      </property>
+     <item>
+      <property name="text">
+       <string>Button</string>
+      </property>
+     </item>
+     <item>
+      <property name="text">
+       <string>Fader</string>
+      </property>
+     </item>
     </widget>
     <widget class="QLabel" name="label_4">
      <property name="geometry">
@@ -183,20 +192,20 @@
     <widget class="QLabel" name="label_5">
      <property name="geometry">
       <rect>
-       <x>150</x>
+       <x>270</x>
        <y>20</y>
        <width>47</width>
        <height>14</height>
       </rect>
      </property>
      <property name="text">
-      <string>TextLabel</string>
+      <string>Address</string>
      </property>
     </widget>
     <widget class="QLabel" name="label_6">
      <property name="geometry">
       <rect>
-       <x>260</x>
+       <x>440</x>
        <y>20</y>
        <width>47</width>
        <height>14</height>
@@ -206,6 +215,113 @@
       <string>type</string>
      </property>
     </widget>
+    <widget class="QLineEdit" name="lineType">
+     <property name="geometry">
+      <rect>
+       <x>130</x>
+       <y>40</y>
+       <width>113</width>
+       <height>20</height>
+      </rect>
+     </property>
+    </widget>
+    <widget class="QLabel" name="label_7">
+     <property name="geometry">
+      <rect>
+       <x>170</x>
+       <y>20</y>
+       <width>47</width>
+       <height>14</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>Type</string>
+     </property>
+    </widget>
+    <widget class="QTableWidget" name="tableWidget">
+     <property name="geometry">
+      <rect>
+       <x>250</x>
+       <y>70</y>
+       <width>256</width>
+       <height>192</height>
+      </rect>
+     </property>
+    </widget>
+    <widget class="QComboBox" name="Combo_Action">
+     <property name="geometry">
+      <rect>
+       <x>10</x>
+       <y>70</y>
+       <width>231</width>
+       <height>22</height>
+      </rect>
+     </property>
+    </widget>
+    <widget class="QLineEdit" name="Dnote">
+     <property name="geometry">
+      <rect>
+       <x>370</x>
+       <y>40</y>
+       <width>61</width>
+       <height>20</height>
+      </rect>
+     </property>
+    </widget>
+    <widget class="QLabel" name="label_8">
+     <property name="geometry">
+      <rect>
+       <x>370</x>
+       <y>20</y>
+       <width>47</width>
+       <height>14</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>Note</string>
+     </property>
+    </widget>
+   </widget>
+   <widget class="QTableWidget" name="list_action">
+    <property name="geometry">
+     <rect>
+      <x>20</x>
+      <y>30</y>
+      <width>761</width>
+      <height>192</height>
+     </rect>
+    </property>
+    <property name="sizePolicy">
+     <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+      <horstretch>10</horstretch>
+      <verstretch>10</verstretch>
+     </sizepolicy>
+    </property>
+    <column>
+     <property name="text">
+      <string>msg_type</string>
+     </property>
+    </column>
+    <column>
+     <property name="text">
+      <string>msgNoC</string>
+     </property>
+    </column>
+    <column>
+     <property name="text">
+      <string>Input Type</string>
+     </property>
+    </column>
+    <column>
+     <property name="text">
+      <string>Action</string>
+     </property>
+    </column>
+    <column>
+     <property name="text">
+      <string>Device ID</string>
+     </property>
+    </column>
    </widget>
   </widget>
   <widget class="QMenuBar" name="menubar">
@@ -217,9 +333,90 @@
      <height>22</height>
     </rect>
    </property>
+   <widget class="QMenu" name="menuMIDI_to_OBS_Configurator">
+    <property name="title">
+     <string>File</string>
+    </property>
+    <addaction name="actionLoad"/>
+    <addaction name="actionSave"/>
+    <addaction name="separator"/>
+    <addaction name="actionAbout"/>
+    <addaction name="separator"/>
+    <addaction name="actionQuit"/>
+   </widget>
+   <addaction name="menuMIDI_to_OBS_Configurator"/>
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
+  <action name="actionLoad">
+   <property name="text">
+    <string>Load</string>
+   </property>
+  </action>
+  <action name="actionSave">
+   <property name="text">
+    <string>Save</string>
+   </property>
+  </action>
+  <action name="actionAbout">
+   <property name="text">
+    <string>About</string>
+   </property>
+  </action>
+  <action name="actionQuit">
+   <property name="text">
+    <string>Quit</string>
+   </property>
+  </action>
  </widget>
  <resources/>
- <connections/>
+ <connections>
+  <connection>
+   <sender>actionQuit</sender>
+   <signal>triggered()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>close()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>399</x>
+     <y>299</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>InputTypeSelector</sender>
+   <signal>activated(int)</signal>
+   <receiver>Combo_Action</receiver>
+   <slot>update()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>420</x>
+     <y>312</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>145</x>
+     <y>342</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>btn_RecordInput</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>btn_RecordInput</receiver>
+   <slot>setChecked(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>487</x>
+     <y>283</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>487</x>
+     <y>283</y>
+    </hint>
+   </hints>
+  </connection>
+ </connections>
 </ui>
