@@ -1,0 +1,51 @@
+{
+    "_default": {},
+    "keys": {
+        "1": {
+            "msg_type": "control_change",
+            "msgNoC": 1,
+            "input_type": "fader",
+            "scale_low": 0,
+            "scale_high": 1,
+            "action": "{\"request-type\": \"SetVolume\", \"message-id\" : \"1\", \"source\": \"Desktop Audio\", \"volume\": %s}",
+            "cmd": "SetVolume",
+            "deviceID": 1
+        },
+        "2": {
+            "msg_type": "control_change",
+            "msgNoC": 2,
+            "input_type": "fader",
+            "scale_low": 0,
+            "scale_high": 1,
+            "action": "{\"request-type\": \"SetVolume\", \"message-id\" : \"1\", \"source\": \"Mic/Aux\", \"volume\": %s}",
+            "cmd": "SetVolume",
+            "deviceID": 1
+        },
+        "3": {
+            "msg_type": "note_on",
+            "msgNoC": 47,
+            "input_type": "button",
+            "action": "{\"request-type\": \"SetCurrentScene\", \"message-id\" : \"1\", \"scene-name\" : \"Scene\"}",
+            "deviceID": 1
+        },
+        "4": {
+            "msg_type": "note_on",
+            "msgNoC": 40,
+            "input_type": "button",
+            "action": "{\"request-type\": \"SetCurrentScene\", \"message-id\" : \"1\", \"scene-name\" : \"Scene\"}",
+            "deviceID": 1
+        },
+        "5": {
+            "msg_type": "note_on",
+            "msgNoC": 41,
+            "input_type": "button",
+            "action": "{\"request-type\": \"SetCurrentScene\", \"message-id\" : \"1\", \"scene-name\" : \"Scene 2\"}",
+            "deviceID": 1
+        }
+    },
+    "devices": {
+        "1": {
+            "devicename": "X-TOUCH COMPACT 0"
+        }
+    }
+}
