@@ -106,6 +106,7 @@ def saveFaderToFile(msg_type, msgNoC, input_type, action, scale, cmd, deviceID):
         db.insert({"msg_type": msg_type, "msgNoC": msgNoC, "input_type": input_type, "scale_low": scale[0], "scale_high": scale[1], "action": action, "cmd": cmd, "deviceID": deviceID})
 
 def saveButtonToFile(msg_type, msgNoC, input_type, action, deviceID):
+    # note_on, 20, button, action, deviceID
     logging.info("Saved %s with note/control %s for action %s on device %s" % (msg_type, msgNoC, action, deviceID))
     Search = Query()
     result = db.search((Search.msg_type == msg_type) & (Search.msgNoC == msgNoC) & (Search.deviceID == deviceID))
@@ -450,6 +451,16 @@ def setActionsSelector(int):
 
 
 
+def saveAction():
+    logging.info("save")
+    msg_type=str(" CC")
+    msgNoC=str(" 20")
+    input_type=str(form.InputTypeSelector.currentText())
+    action=str(form.Combo_Action.currentText())
+    deviceID=str(form.Combo_InputDevices.currentIndex()+1)
+    print(msg_type, msgNoC, input_type, action, deviceID)
+    #saveButtonToFile(msg_type, msgNoC, input_type, action, deviceID)
+    # note_on, 20, button, action, deviceID
 class MyThread(threading.Thread):
 
     def __init__(self, interval):
@@ -484,21 +495,16 @@ class MyThread(threading.Thread):
 
                 #logging.info(msg)
                 x=msg.dict()
-                #logging.info (x["time"])
-                #logging.info (x["type"])
-                #logging.info (x["control"])
-                #logging.info (x["value"])
-                #logging.info (x["channel"])
-                #logging.info(x)
-                #logging.info(str(x["note"]))
 
-                #logging.info(str(note))
+
+                # Allows for recording changed input if note or CC address is not already in list. Filtered by Note or CC (button or fader)
+                # TODO: Figure out how to do this without filtering.
+
+
                 if form.InputTypeSelector.currentText() == "Button":
                     items = form.table_incoming.findItems(str(x["note"]), QtCore.Qt.MatchExactly | QtCore.Qt.MatchRecursive)
                 else:
                     items = form.table_incoming.findItems(str(x["control"]), QtCore.Qt.MatchExactly | QtCore.Qt.MatchRecursive)
-
-
                 if not items:
 
                     form.table_incoming.insertRow(rowNumber)
@@ -647,7 +653,7 @@ if __name__ == "__main__":
         connectToDevice()
         startuped=False
     form.Combo_scene_list_box.currentTextChanged.connect(ChangedScenes)
-
+    form.btn_Add.clicked.connect(saveAction)
     form.btn_RecordInput.clicked.connect(flatten)
     form.InputTypeSelector.currentIndexChanged.connect(setActionsSelector)
     updateSceneList()

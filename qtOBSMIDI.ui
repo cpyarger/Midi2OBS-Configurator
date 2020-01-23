@@ -6,19 +6,19 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1142</width>
-    <height>643</height>
+    <width>1132</width>
+    <height>721</height>
    </rect>
   </property>
   <property name="windowTitle">
    <string>MIDI to OBS Configurator</string>
   </property>
   <widget class="QWidget" name="centralwidget">
-   <widget class="QPushButton" name="add">
+   <widget class="QPushButton" name="btn_Add">
     <property name="geometry">
      <rect>
-      <x>720</x>
-      <y>120</y>
+      <x>920</x>
+      <y>330</y>
       <width>75</width>
       <height>23</height>
      </rect>
@@ -30,8 +30,8 @@
    <widget class="QComboBox" name="Combo_InputDevices">
     <property name="geometry">
      <rect>
-      <x>700</x>
-      <y>40</y>
+      <x>900</x>
+      <y>250</y>
       <width>211</width>
       <height>22</height>
      </rect>
@@ -40,8 +40,8 @@
    <widget class="QComboBox" name="Combo_OutputDevices">
     <property name="geometry">
      <rect>
-      <x>700</x>
-      <y>90</y>
+      <x>900</x>
+      <y>300</y>
       <width>211</width>
       <height>22</height>
      </rect>
@@ -50,8 +50,8 @@
    <widget class="QLabel" name="label">
     <property name="geometry">
      <rect>
-      <x>700</x>
-      <y>70</y>
+      <x>900</x>
+      <y>280</y>
       <width>131</width>
       <height>16</height>
      </rect>
@@ -76,8 +76,8 @@
    <widget class="QLabel" name="label_3">
     <property name="geometry">
      <rect>
-      <x>700</x>
-      <y>20</y>
+      <x>900</x>
+      <y>230</y>
       <width>101</width>
       <height>16</height>
      </rect>
@@ -89,8 +89,8 @@
    <widget class="QPushButton" name="btn_deleteAction">
     <property name="geometry">
      <rect>
-      <x>810</x>
-      <y>120</y>
+      <x>1010</x>
+      <y>330</y>
       <width>75</width>
       <height>23</height>
      </rect>
@@ -105,7 +105,7 @@
       <x>20</x>
       <y>230</y>
       <width>541</width>
-      <height>321</height>
+      <height>441</height>
      </rect>
     </property>
     <property name="frameShape">
@@ -134,26 +134,6 @@
       </rect>
      </property>
     </widget>
-    <widget class="QComboBox" name="InputTypeSelector">
-     <property name="geometry">
-      <rect>
-       <x>440</x>
-       <y>40</y>
-       <width>62</width>
-       <height>22</height>
-      </rect>
-     </property>
-     <item>
-      <property name="text">
-       <string>Button</string>
-      </property>
-     </item>
-     <item>
-      <property name="text">
-       <string>Fader</string>
-      </property>
-     </item>
-    </widget>
     <widget class="QLabel" name="label_4">
      <property name="geometry">
       <rect>
@@ -178,19 +158,6 @@
      </property>
      <property name="text">
       <string>Address</string>
-     </property>
-    </widget>
-    <widget class="QLabel" name="label_6">
-     <property name="geometry">
-      <rect>
-       <x>440</x>
-       <y>20</y>
-       <width>47</width>
-       <height>14</height>
-      </rect>
-     </property>
-     <property name="text">
-      <string>type</string>
      </property>
     </widget>
     <widget class="QLineEdit" name="lineType">
@@ -406,7 +373,7 @@
      <rect>
       <x>20</x>
       <y>30</y>
-      <width>541</width>
+      <width>1111</width>
       <height>192</height>
      </rect>
     </property>
@@ -421,6 +388,9 @@
       <width>1</width>
       <height>1</height>
      </size>
+    </property>
+    <property name="alternatingRowColors">
+     <bool>true</bool>
     </property>
     <attribute name="horizontalHeaderCascadingSectionResizes">
      <bool>true</bool>
@@ -462,7 +432,7 @@
     <property name="geometry">
      <rect>
       <x>580</x>
-      <y>30</y>
+      <y>240</y>
       <width>75</width>
       <height>23</height>
      </rect>
@@ -483,9 +453,9 @@
    <widget class="QTableWidget" name="table_incoming">
     <property name="geometry">
      <rect>
-      <x>570</x>
-      <y>180</y>
-      <width>511</width>
+      <x>580</x>
+      <y>360</y>
+      <width>541</width>
       <height>311</height>
      </rect>
     </property>
@@ -519,7 +489,7 @@
     <property name="geometry">
      <rect>
       <x>580</x>
-      <y>70</y>
+      <y>280</y>
       <width>75</width>
       <height>23</height>
      </rect>
@@ -532,7 +502,7 @@
     <property name="geometry">
      <rect>
       <x>580</x>
-      <y>110</y>
+      <y>320</y>
       <width>75</width>
       <height>23</height>
      </rect>
@@ -541,13 +511,46 @@
      <string>Edit</string>
     </property>
    </widget>
+   <widget class="QComboBox" name="InputTypeSelector">
+    <property name="geometry">
+     <rect>
+      <x>740</x>
+      <y>250</y>
+      <width>81</width>
+      <height>22</height>
+     </rect>
+    </property>
+    <item>
+     <property name="text">
+      <string>Button</string>
+     </property>
+    </item>
+    <item>
+     <property name="text">
+      <string>Fader</string>
+     </property>
+    </item>
+   </widget>
+   <widget class="QLabel" name="label_6">
+    <property name="geometry">
+     <rect>
+      <x>770</x>
+      <y>230</y>
+      <width>47</width>
+      <height>14</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>type</string>
+    </property>
+   </widget>
   </widget>
   <widget class="QMenuBar" name="menubar">
    <property name="geometry">
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>1142</width>
+     <width>1132</width>
      <height>22</height>
     </rect>
    </property>
