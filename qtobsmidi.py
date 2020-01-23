@@ -1,11 +1,13 @@
 # This Python file uses the following encoding: utf-8
 from PySide2.QtCore import Signal, Slot, QObject
+
+
 import logging
 import time
 from time import sleep
 
 from PySide2.QtWidgets import QApplication, QMainWindow
-from PyQt5 import uic, QtWidgets
+from PyQt5 import uic, QtWidgets,QtCore
 
 Form, Window = uic.loadUiType("qtOBSMIDI.ui")
 import mido, threading, sys, atexit, json, time, signal, socket
@@ -19,7 +21,7 @@ serverIP = "localhost"
 serverPort = "4444"
 ####
 global stop_threads
-
+rowNumber=0
 database = TinyDB("config.json", indent=4)
 db = database.table("keys", cache_size=0)
 inpType = ["Button", "Fader"]
@@ -74,7 +76,8 @@ specialSourcesList = []
 profilesList = []
 sceneCollectionList = []
 gdisourcesList = []
-
+value = ""
+note = ""
 midiports = []
 
 ignore = 255
@@ -139,6 +142,8 @@ def askForInputScaling():
     return low, high
 
 def updateTransitionList():
+    form.box_transitions.clear()
+    counter = 0
     global transitionList
     ws = create_connection("ws://" + serverIP + ":" + serverPort)
     logging.info("\nUpdating transition list, plase wait")
@@ -149,12 +154,17 @@ def updateTransitionList():
     if jsn["message-id"] == "999999":
         for item in jsn["transitions"]:
             transitionList.append(item["name"])
+            form.box_transitions.insertItem(counter, str(item["name"]))
+            counter += 1
+
         logging.info("Transitions updated")
     else:
         logging.info("Failed to update")
     ws.close()
 
 def updateSceneList():
+    form.Combo_scene_list_box.clear()
+    counter = 0
     global sceneListShort
     global sceneListLong
     ws = create_connection("ws://" + serverIP + ":" + serverPort)
@@ -168,9 +178,13 @@ def updateSceneList():
         sceneListLong = jsn["scenes"]
         for item in jsn["scenes"]:
             sceneListShort.append(item["name"])
+            form.Combo_scene_list_box.insertItem(counter, str(item["name"]))
+            counter += 1
+
         logging.info("Scenes updated")
     else:
         logging.info("Failed to update")
+
     ws.close()
 
 def updateSpecialSources():
@@ -193,6 +207,8 @@ def updateSpecialSources():
     ws.close()
 
 def updateProfileList():
+    form.box_profiles.clear()
+    counter = 0
     global profilesList
     ws = create_connection("ws://" + serverIP + ":" + serverPort)
     logging.info("Updating Profiles List, plase wait")
@@ -203,12 +219,17 @@ def updateProfileList():
     if jsn["message-id"] == "99999999":
         for line in jsn["profiles"]:
             profilesList.append(line["profile-name"])
+            form.box_profiles.insertItem(counter, str(line["profile-name"]))
+            counter += 1
         logging.info("Profiles List updated")
     else:
         logging.info("Failed to update")
+
     ws.close()
 
 def updatesceneCollectionList():
+    form.box_collections.clear()
+    counter = 0
     global sceneCollectionList
     ws = create_connection("ws://" + serverIP + ":" + serverPort)
     logging.info("\nUpdating Scene Collection List, plase wait")
@@ -219,12 +240,19 @@ def updatesceneCollectionList():
     if jsn["message-id"] == "99999999":
         for line in jsn["scene-collections"]:
             sceneCollectionList.append(line["sc-name"])
+            form.box_collections.insertItem(counter, str(line["sc-name"]))
+            counter += 1
+
         logging.info("Scene Collection List updated")
     else:
         logging.info("Failed to update")
     ws.close()
 
+
+
 def checkIfSourceHasGainFilter(sourcename):
+    form.box_volumeFaders.clear()
+    counter = 0
     ws = create_connection("ws://" + serverIP + ":" + serverPort)
     logging.info("\nChecking source filters, plase wait")
     ws.send('{"request-type": "GetSourceFilters", "message-id": "MIDItoOBS-checksourcegainfilter", "sourceName": "' + sourcename + '"}')
@@ -234,10 +262,13 @@ def checkIfSourceHasGainFilter(sourcename):
     if jsn["message-id"] == "MIDItoOBS-checksourcegainfilter":
         for line in jsn["filters"]:
             if line["type"] == "gain_filter":
+                form.box_volumeFaders.insertItem(counter, str(line["name"]))
+                counter += 1
                 return line["name"]
     return False
-
 def getSourceFilters(sourcename):
+    form.box_filtersFaders.clear()
+    counter = 0
     ws = create_connection("ws://" + serverIP + ":" + serverPort)
     logging.info("\nChecking source filters, plase wait")
     ws.send('{"request-type": "GetSourceFilters", "message-id": "MIDItoOBS-getSourceFilters", "sourceName": "' + sourcename + '"}')
@@ -245,6 +276,10 @@ def getSourceFilters(sourcename):
     ws.close()
     jsn = json.loads(result)
     if jsn["message-id"] == "MIDItoOBS-getSourceFilters":
+        form.box_filtersFaders.insertItem(counter, str(jsn["filters"]))
+        logging.info(str(jsn["filters"]))
+
+        counter += 1
         return jsn["filters"]
     else:
         return False
@@ -386,7 +421,6 @@ def getDevices():
         form.Combo_InputDevices.insertItem(counter, device)
 
 def read_from_file():
-
     result = db.all()
 
     for rowNumber, RowData in enumerate (result):
@@ -395,12 +429,7 @@ def read_from_file():
             #m_pTableWidget->setItem(0, 1, new QTableWidgetItem("Hello"));
 
             form.list_action.setItem(rowNumber, colum_number, QtWidgets.QTableWidgetItem(RowData.get(str(data))))
-#            logging.info(RowData.get(str(data)))
-           # form.list_action.setItem(rowNumber, collum_number, QTableWidgetItem(result))
-        #counter += 1
-        #logging.info(x)
-        #form.list_action.setItem()
-        #form.list_action.addItem( x)
+
 
 @Slot(int)
 def setActionsSelector(int):
@@ -424,10 +453,11 @@ def setActionsSelector(int):
 class MyThread(threading.Thread):
 
     def __init__(self, interval):
-
+        logging.info("starting Thread")
         self.stop_event = threading.Event()
         self.interval = interval
         super(MyThread, self).__init__()
+
 
     # function using _stop function
 
@@ -441,20 +471,58 @@ class MyThread(threading.Thread):
     def terminate(self):
            self.stop_event.set()
     def main(self):
-        logging.info("starting")
+        #logging.info("starting")
         global ignore
+        global savetime1
+        global rowNumber
+        global value
+        note =""
+
         for device in midiports:
-            msg = device["object"].poll()
-            if msg:
-                if msg.type == "note_on":
-                    if msg.note != ignore:
-                        midicallback(msg, device["id"], device["devicename"])
-                if msg.type == "program_change":
-                    if msg.program != ignore:
-                        midicallback(msg, device["id"], device["devicename"])
-                if msg.type == "control_change":
-                    if msg.control != ignore:
-                        midicallback(msg, device["id"], device["devicename"])
+            try:
+                msg = device["object"].poll()
+
+                #logging.info(msg)
+                x=msg.dict()
+                #logging.info (x["time"])
+                #logging.info (x["type"])
+                #logging.info (x["control"])
+                #logging.info (x["value"])
+                #logging.info (x["channel"])
+                #logging.info(x)
+                #logging.info(str(x["note"]))
+
+                #logging.info(str(note))
+                if form.InputTypeSelector.currentText() == "Button":
+                    items = form.table_incoming.findItems(str(x["note"]), QtCore.Qt.MatchExactly | QtCore.Qt.MatchRecursive)
+                else:
+                    items = form.table_incoming.findItems(str(x["control"]), QtCore.Qt.MatchExactly | QtCore.Qt.MatchRecursive)
+
+
+                if not items:
+
+                    form.table_incoming.insertRow(rowNumber)
+
+                    logging.info("start for loop")
+                    for cn, data in enumerate (x):
+                        #logging.info(cn)
+                        #logging.info(x[data])
+                        #logging.info(x)
+                        form.table_incoming.setItem(rowNumber, cn, QtWidgets.QTableWidgetItem(str(x[data])))
+                    rowNumber+=1
+                    logging.info("end for loop")
+
+
+                value = str(x["control"])
+                note = str(x["note"])
+                #logging.info()
+
+                msg.reset()
+                #form.list_action.setItem(rcount, ccount, QtWidgets.QTableWidgetItem(RowData.get(str(data))))
+            except:
+                logging.info(form.InputTypeSelector.currentText())
+
+                logging.info("nonemsg")
 
 
 
@@ -463,31 +531,33 @@ class MyThread(threading.Thread):
 
 
 def setupButtonEvents(action, note, type, deviceID) :
+
+    form.Dnote.clear()
+    form.DevID.clear()
+    form.addr.clear()
+    form.lineType.clear()
     form.DevID.setText(str(deviceID))
     form.Dnote.setText(str(note))
     ctl=str(action)
     form.addr.setText(ctl)
     form.lineType.setText(str(type))
-    form.Dnote.update()
-    form.DevID.update()
-    form.addr.update()
-    form.lineType.update()
+
 
 def setupFaderEvents(action, note, type, deviceID):
+    form.Dnote.clear()
+    form.DevID.clear()
+    form.addr.clear()
+    form.lineType.clear()
     form.DevID.setText(str(deviceID))
     form.Dnote.setText(str(note))
     ctl=str(action)
     form.addr.setText(ctl)
     form.lineType.setText(str(type))
-    form.Dnote.update()
-    form.DevID.update()
-    form.addr.update()
-    form.lineType.update()
+
 
 
 def midicallback(message, deviceID, deviceName):
     global ignore
-
     #logging.info("Received message", str(message))
     #logging.info("from device", str(deviceName))
 
@@ -501,14 +571,13 @@ def midicallback(message, deviceID, deviceName):
         setupFaderEvents(action, message.control, message.type, deviceID)
 def thread_function(name):
     logging.info("Thread %s: starting", str(name))
-    time.sleep(2)
-    logging.info("Thread %s: finishing", str(name))
+
 
 def flatten():
     global worker
     #form.btn_RecordInput.isFlat=True
     if form.btn_RecordInput.isChecked()==True:
-        worker = MyThread(interval=.1)
+        worker = MyThread(interval=.01)
         worker.start()
     if form.btn_RecordInput.isChecked()==False:
         logging.info("stop worker")
@@ -529,17 +598,29 @@ def connectToDevice():
             logging.info("Please close the device in the other application/plug it in/select the rename option in the device management menu and restart this script.\n")
             database.close()
             sys.exit(5)
-        startup=False
+
+def ChangedScenes(scene):
+    checkIfSourceHasGainFilter(scene)
+    getSourceFilters(scene)
+    logging.info(scene)
+    updateSpecialSources()
+    updateTransitionList()
+    updateProfileList()
+    updatesceneCollectionList()
 
 def disconnectFromDevice():
     logging.info("Disconnect From Device")
 
 def myExitHandler():
+
     logging.info("stop worker")
     worker.terminate()
     logging.info("kill application")
 
-
+def startup():
+    setActionsSelector(0)
+    read_from_file()
+    getDevices()
 
 class qtobsmidi(QMainWindow):
     def currentIndexChanged(self, qmodelindex):
@@ -552,26 +633,23 @@ class qtobsmidi(QMainWindow):
 if __name__ == "__main__":
     format = "%(asctime)s: %(message)s"
     logging.basicConfig(format=format, level=logging.INFO, datefmt="%H:%M:%S")
-
     signal.signal(signal.SIGINT, ScriptExit)
     app = QApplication(sys.argv)
     app.aboutToQuit.connect(myExitHandler)
-
     window = Window()
     form = Form()
     form.setupUi(window)
     window.show()
     logging.info("Program Startup")
-    getDevices()
+    startuped=True
+    if startuped==True:
+        startup()
+        connectToDevice()
+        startuped=False
+    form.Combo_scene_list_box.currentTextChanged.connect(ChangedScenes)
+
     form.btn_RecordInput.clicked.connect(flatten)
     form.InputTypeSelector.currentIndexChanged.connect(setActionsSelector)
-    setActionsSelector(0)
-    read_from_file()
-
-    startup=True
-    if startup==True:
-        connectToDevice()
-
-
+    updateSceneList()
     sys.exit(app.exec_())
     worker.terminate()
