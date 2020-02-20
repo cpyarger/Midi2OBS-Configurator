@@ -458,7 +458,7 @@ def saveAction():
     input_type=str(form.InputTypeSelector.currentText())
     action=str(form.Combo_Action.currentText())
     deviceID=str(form.Combo_InputDevices.currentIndex()+1)
-    print(msg_type, msgNoC, input_type, action, deviceID)
+    printqt creator(msg_type, msgNoC, input_type, action, deviceID)
     #saveButtonToFile(msg_type, msgNoC, input_type, action, deviceID)
     # note_on, 20, button, action, deviceID
 class MyThread(threading.Thread):
