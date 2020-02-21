@@ -8,20 +8,25 @@ from time import sleep
 
 from PySide2.QtWidgets import QApplication, QMainWindow
 from PyQt5 import uic, QtWidgets,QtCore
-
+from PyQt5.QtWidgets import QMainWindow, QLabel, QGridLayout, QWidget
+from PyQt5.QtWidgets import QPushButton
+from PyQt5.QtWidgets import QMessageBox
+from PyQt5.QtGui import QIcon
+from PyQt5.QtCore import QSize
 Form, Window = uic.loadUiType("qtOBSMIDI.ui")
 import mido, threading, sys, atexit, json, time, signal, socket
 from tinydb import TinyDB, Query
 from websocket import create_connection
 global worker
 
-
+record=False
 ####Change IP and Port here
 serverIP = "localhost"
 serverPort = "4444"
 ####
 global stop_threads
 rowNumber=0
+
 database = TinyDB("config.json", indent=4)
 db = database.table("keys", cache_size=0)
 inpType = ["Button", "Fader"]
@@ -68,7 +73,6 @@ jsonArchive = {"SetCurrentScene": """{"request-type": "SetCurrentScene", "messag
                "PauseRecording": """{"request-type": "PauseRecording", "message-id" : "MIDItoOBS-PauseRecording"}""",
                "ResumeRecording": """{"request-type": "ResumeRecording", "message-id" : "MIDItoOBS-ResumeRecording"}""",
                "ToggleSourceFilter": """{"request-type": "SetSourceFilterVisibility", "sourceName": "%s", "filterName": "%s", "filterEnabled": %s, "message-id": "MIDItoOBS-EnableSourceFilter"}"""}
-
 sceneListShort = []
 sceneListLong = []
 transitionList = []
@@ -405,36 +409,54 @@ def getDevices():
 
     deviceList = []
     counter = 0
+    counter2 = 0
+
     inUseDeviceList = devdb.all()
     for device in availableoutDeviceList:
 
         #logging.info("output: %s: %s" % (counter, device))
         counter += 1
         form.Combo_OutputDevices.insertItem(counter, device)
+    else:
+        logging.info(availableoutDeviceList)
+        x = AlertWindow()
+        x.show()
+
 
     for device in availableinDeviceList:
         if devInDB(device, inUseDeviceList):
             pass
         #logging.info("%s: %s" % (counter, device))
-        counter += 1
+        counter2 += 1
         deviceList.append(device)
 
         form.Combo_InputDevices.insertItem(counter, device)
+    if counter > 1:
+        logging.info(str(counter))
+
+        logging.info("Connecting to Devices")
+        connectToDevice()
 
 def read_from_file():
     result = db.all()
 
     for rowNumber, RowData in enumerate (result):
         form.list_action.insertRow(rowNumber)
-        for colum_number, data in enumerate (RowData):
-            #m_pTableWidget->setItem(0, 1, new QTableWidgetItem("Hello"));
+        logging.info(RowData)
 
-            form.list_action.setItem(rowNumber, colum_number, QtWidgets.QTableWidgetItem(RowData.get(str(data))))
+        #m_pTableWidget->setItem(0, 1, new QTableWidgetItem("Hello"));
+        #editTable.add(EditTable, rowNumber,RowData, colum_number, data);
+        form.list_action.setItem(rowNumber,0,QtWidgets.QTableWidgetItem(str(RowData["msg_type"])))
+        form.list_action.setItem(rowNumber,1,QtWidgets.QTableWidgetItem(str(RowData["msgNoC"])))
+        form.list_action.setItem(rowNumber,2,QtWidgets.QTableWidgetItem(str(RowData["input_type"])))
+        form.list_action.setItem(rowNumber,4,QtWidgets.QTableWidgetItem(str(RowData["action"])))
+        form.list_action.setItem(rowNumber,3,QtWidgets.QTableWidgetItem(str(RowData["deviceID"])))
 
 
 @Slot(int)
 def setActionsSelector(int):
     form.Combo_Action.clear()
+    form.table_incoming.clear()
     counter = 0
     if (int == 0):
         for Action in buttonActions:
@@ -448,7 +470,10 @@ def setActionsSelector(int):
         logging.info("1")
     form.Combo_Action.update()
 
-
+@Slot(int)
+def setOptionSelector(int):
+    #Set up options based on action
+    var=int
 
 
 def saveAction():
@@ -458,11 +483,10 @@ def saveAction():
     input_type=str(form.InputTypeSelector.currentText())
     action=str(form.Combo_Action.currentText())
     deviceID=str(form.Combo_InputDevices.currentIndex()+1)
-    printqt creator(msg_type, msgNoC, input_type, action, deviceID)
+    print(msg_type, msgNoC, input_type, action, deviceID)
     #saveButtonToFile(msg_type, msgNoC, input_type, action, deviceID)
     # note_on, 20, button, action, deviceID
 class MyThread(threading.Thread):
-
     def __init__(self, interval):
         logging.info("starting Thread")
         self.stop_event = threading.Event()
@@ -502,42 +526,117 @@ class MyThread(threading.Thread):
 
 
                 if form.InputTypeSelector.currentText() == "Button":
-                    items = form.table_incoming.findItems(str(x["note"]), QtCore.Qt.MatchExactly | QtCore.Qt.MatchRecursive)
+                    items = str(x["note"])
+                    logging.info(x)
+                    logging.info(items)
+                    if form.table_incoming.findText(items, QtCore.Qt.MatchExactly | QtCore.Qt.MatchRecursive)<0:
+                        form.table_incoming.insertItem(rowNumber, str(items))
+                        rowNumber+=1
+
                 else:
-                    items = form.table_incoming.findItems(str(x["control"]), QtCore.Qt.MatchExactly | QtCore.Qt.MatchRecursive)
+                    items = str(x["control"])
+                    if form.table_incoming.findText(items, QtCore.Qt.MatchExactly | QtCore.Qt.MatchRecursive)<0:
+
+
+                        form.table_incoming.insertItem(rowNumber, str(items))
+                        rowNumber+=1
                 if not items:
 
-                    form.table_incoming.insertRow(rowNumber)
+                    #form.table_incoming.insertRow(rowNumber)
 
                     logging.info("start for loop")
                     for cn, data in enumerate (x):
                         #logging.info(cn)
                         #logging.info(x[data])
-                        #logging.info(x)
-                        form.table_incoming.setItem(rowNumber, cn, QtWidgets.QTableWidgetItem(str(x[data])))
+                        logging.info(x)
+                        #insertTable.add(insertTable, rowNumber, cn, x[data]);
+
+                        #form.table_incoming.setItem(rowNumber, cn, QtWidgets.QTableWidgetItem(str(x[data])))
                     rowNumber+=1
                     logging.info("end for loop")
 
 
-                value = str(x["control"])
-                note = str(x["note"])
-                #logging.info()
+                    value = str(x["control"])
+                    note = str(x["note"])
 
-                msg.reset()
-                #form.list_action.setItem(rcount, ccount, QtWidgets.QTableWidgetItem(RowData.get(str(data))))
+                    #logging.info()
+
+                    msg.reset()
+                    #form.list_action.setItem(rcount, ccount, QtWidgets.QTableWidgetItem(RowData.get(str(data))))
             except:
-                logging.info(form.InputTypeSelector.currentText())
-
-                logging.info("nonemsg")
-
-
-
+                #blah
+                #logging.info(form.InputTypeSelector.currentText())
+                x=1
+                #logging.info("nonemsg")
 
 
+class AlertWindow(QMainWindow):
+    def __init__(self):
+        QMainWindow.__init__(self)
+
+        self.setMinimumSize(QSize(300, 200))
+        self.setWindowTitle("PyQt messagebox example - pythonprogramminglanguage.com")
+
+        pybutton = QtWidgets.QPushButton('Show messagebox', self)
+        pybutton.clicked.connect(self.clickMethod)
+        pybutton.resize(200,64)
+        pybutton.move(50, 50)
+
+    def clickMethod(self):
+            QMessageBox.critical(self, "Title", "Message")
+
+
+
+
+class editTable():
+    def __init__(self, form):
+        self.variable="foo"
+        self.table()
+    def table(self):
+        self.tableWidget = form.list_action
+    def add(self, rowNumber,RowData, colum_number, data ):
+        self.tableWidget.setItem(rowNumber, colum_number, QtWidgets.QTableWidgetItem())
+        comboBox = QtWidgets.QComboBox()
+        comboBox.addItem( str(RowData.get(str(data))))
+        self.tableWidget.setCellWidget(rowNumber, colum_number, comboBox)
+# Add one full row at a time,
+# Add actions in class to handle when things change in drop down
+#Pre populate drop down.
+# or set it up so that an edit area is populated on a click
+# Lets go with # 2 for now
+
+
+class InsertTable():
+    def __init__(self, form):
+        self.table()
+    def row(self):
+        x=""
+        type=""
+        time=""
+        control=""
+        value=""
+        #form.list_action.setItem(rowNumber,0,QtWidgets.QTableWidgetItem(str(RowData["msg_type"])))
+        #form.list_action.setItem(rowNumber,1,QtWidgets.QTableWidgetItem(str(RowData["msgNoC"])))
+        #form.list_action.setItem(rowNumber,2,QtWidgets.QTableWidgetItem(str(RowData["input_type"])))
+        #form.list_action.setItem(rowNumber,4,QtWidgets.QTableWidgetItem(str(RowData["action"])))
+        #form.list_action.setItem(rowNumber,3,QtWidgets.QTableWidgetItem(str(RowData["deviceID"])))
+
+    def table(self):
+        self.tableWidget = form.table_incoming
+
+    def typeButton(self):
+        return buttonActions
+    def typeFader(self):
+        return faderActions
+    def add(self, rowNumber, colum_number, data ):
+        self.tableWidget.setItem(rowNumber, colum_number, QtWidgets.QTableWidgetItem())
+        comboBox = QtWidgets.QComboBox()
+        comboBox.addItem( str(data))
+        logging.info("adding "+data+" to table")
+        self.tableWidget.setCellWidget(rowNumber, colum_number, comboBox)
 
 
 def setupButtonEvents(action, note, type, deviceID) :
-
     form.Dnote.clear()
     form.DevID.clear()
     form.addr.clear()
@@ -560,7 +659,27 @@ def setupFaderEvents(action, note, type, deviceID):
     form.addr.setText(ctl)
     form.lineType.setText(str(type))
 
-
+def newFaderSetup(action, NoC, msgType, deviceID):
+    if action == "SetVolume":
+        source = "" # pull from dropdown
+        scale = (0,1)
+        action = jsonArchive["SetVolume"] % (source, "%s")
+        saveFaderToFile(msgType, NoC, "fader" , action, scale, "SetVolume", deviceID)
+    elif action == "SetSyncOffset":
+        source = "" #Pull from dropdown printArraySelect(tempSceneList)
+        scale = (0,1) #askForInputScaling()
+        action = jsonArchive["SetSyncOffset"] % (source, "%s")
+        saveFaderToFile(msgType, NoC, "fader" , action, scale, "SetSyncOffset", deviceID)
+    elif action == "SetGainFilter":
+        source = "" #Pull From Dropdown printArraySelect(tempSceneList)
+        filtername = checkIfSourceHasGainFilter(source)
+        if filtername:
+            scale = (-30,30) #askForInputScaling()
+            action = jsonArchive["SetGainFilter"] % (source, filtername, "%s")
+            saveFaderToFile(msgType, NoC, "fader" , action, scale, "SetGainFilter", deviceID)
+        else:
+            logging.info("The selected source has no gain filter. Please add it in the source filter dialog and try again.")
+            #Setup Alertbox
 
 def midicallback(message, deviceID, deviceName):
     global ignore
@@ -585,9 +704,15 @@ def flatten():
     if form.btn_RecordInput.isChecked()==True:
         worker = MyThread(interval=.01)
         worker.start()
+        tray.showMessage("Test","Recording",icon)
+        record=True
+
     if form.btn_RecordInput.isChecked()==False:
         logging.info("stop worker")
         worker.terminate()
+        tray.showMessage("Test","Stopping Recording",icon)
+        record=False
+
 
 def connectToDevice():
     devices = devdb.all()
@@ -602,6 +727,9 @@ def connectToDevice():
             logging.info("\nCould not open", str(device["devicename"]))
             logging.info("The midi device might be used by another application/not plugged in/have a different name.")
             logging.info("Please close the device in the other application/plug it in/select the rename option in the device management menu and restart this script.\n")
+            #QtWidgets.QMessageBox.Critical(self, "Could not open", "The midi device might be used by another application/not plugged in/have a different name.")
+            mainWin = AlertWindow()
+            mainWin.show()
             database.close()
             sys.exit(5)
 
@@ -619,8 +747,9 @@ def disconnectFromDevice():
 
 def myExitHandler():
 
-    logging.info("stop worker")
-    worker.terminate()
+    if form.btn_RecordInput.isChecked()==True:
+        logging.info("stop worker")
+        worker.terminate()
     logging.info("kill application")
 
 def startup():
@@ -645,17 +774,33 @@ if __name__ == "__main__":
     window = Window()
     form = Form()
     form.setupUi(window)
+    EditTable=editTable(form)
+    insertTable=InsertTable(form)
+
     window.show()
     logging.info("Program Startup")
     startuped=True
     if startuped==True:
         startup()
-        connectToDevice()
         startuped=False
     form.Combo_scene_list_box.currentTextChanged.connect(ChangedScenes)
     form.btn_Add.clicked.connect(saveAction)
     form.btn_RecordInput.clicked.connect(flatten)
     form.InputTypeSelector.currentIndexChanged.connect(setActionsSelector)
+    icon = QIcon("icon.png")
+    Menu=QtWidgets.QMenu()
+    actionQuit=Menu.addAction("Quit")
+    actionQuit.triggered.connect(app.quit)
+
+
+    logging.info(actionQuit)
+    tray=QtWidgets.QSystemTrayIcon()
+    tray.setIcon(icon)
+    tray.setContextMenu(Menu)
+    tray.show()
+
+
     updateSceneList()
     sys.exit(app.exec_())
+
     worker.terminate()
