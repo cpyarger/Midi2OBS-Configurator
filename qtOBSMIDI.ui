@@ -217,6 +217,20 @@
      <item row="9" column="0">
       <layout class="QHBoxLayout" name="horizontalLayout">
        <item>
+        <widget class="QLabel" name="testlabel2">
+         <property name="text">
+          <string>TextLabel</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QLabel" name="testlabel">
+         <property name="text">
+          <string>TextLabel</string>
+         </property>
+        </widget>
+       </item>
+       <item>
         <widget class="QPushButton" name="btn_Start">
          <property name="sizePolicy">
           <sizepolicy hsizetype="Fixed" vsizetype="MinimumExpanding">
@@ -1701,90 +1715,6 @@
      <item row="0" column="0">
       <layout class="QHBoxLayout" name="horizontalLayout_5">
        <item>
-        <widget class="QPushButton" name="btn_RecordInput">
-         <property name="sizePolicy">
-          <sizepolicy hsizetype="MinimumExpanding" vsizetype="MinimumExpanding">
-           <horstretch>0</horstretch>
-           <verstretch>0</verstretch>
-          </sizepolicy>
-         </property>
-         <property name="minimumSize">
-          <size>
-           <width>128</width>
-           <height>30</height>
-          </size>
-         </property>
-         <property name="baseSize">
-          <size>
-           <width>0</width>
-           <height>30</height>
-          </size>
-         </property>
-         <property name="text">
-          <string>Record Input</string>
-         </property>
-         <property name="checkable">
-          <bool>true</bool>
-         </property>
-         <property name="autoDefault">
-          <bool>false</bool>
-         </property>
-         <property name="default">
-          <bool>false</bool>
-         </property>
-        </widget>
-       </item>
-       <item>
-        <widget class="QPushButton" name="btn_Add">
-         <property name="sizePolicy">
-          <sizepolicy hsizetype="MinimumExpanding" vsizetype="MinimumExpanding">
-           <horstretch>0</horstretch>
-           <verstretch>0</verstretch>
-          </sizepolicy>
-         </property>
-         <property name="minimumSize">
-          <size>
-           <width>128</width>
-           <height>30</height>
-          </size>
-         </property>
-         <property name="baseSize">
-          <size>
-           <width>0</width>
-           <height>30</height>
-          </size>
-         </property>
-         <property name="text">
-          <string>Add Action</string>
-         </property>
-        </widget>
-       </item>
-       <item>
-        <widget class="QPushButton" name="btn_deleteAction">
-         <property name="sizePolicy">
-          <sizepolicy hsizetype="MinimumExpanding" vsizetype="MinimumExpanding">
-           <horstretch>0</horstretch>
-           <verstretch>0</verstretch>
-          </sizepolicy>
-         </property>
-         <property name="minimumSize">
-          <size>
-           <width>128</width>
-           <height>30</height>
-          </size>
-         </property>
-         <property name="baseSize">
-          <size>
-           <width>0</width>
-           <height>30</height>
-          </size>
-         </property>
-         <property name="text">
-          <string>Delete Action</string>
-         </property>
-        </widget>
-       </item>
-       <item>
         <widget class="QPushButton" name="pushButton_2">
          <property name="sizePolicy">
           <sizepolicy hsizetype="MinimumExpanding" vsizetype="MinimumExpanding">
@@ -1810,7 +1740,7 @@
         </widget>
        </item>
        <item>
-        <widget class="QPushButton" name="pushButton">
+        <widget class="QPushButton" name="btn_deleteAction">
          <property name="sizePolicy">
           <sizepolicy hsizetype="MinimumExpanding" vsizetype="MinimumExpanding">
            <horstretch>0</horstretch>
@@ -1830,7 +1760,7 @@
           </size>
          </property>
          <property name="text">
-          <string>Delete</string>
+          <string>Delete Action</string>
          </property>
         </widget>
        </item>

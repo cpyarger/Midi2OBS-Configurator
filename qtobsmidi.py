@@ -1,21 +1,16 @@
 # This Python file uses the following encoding: utf-8
 from PySide2.QtCore import Signal, Slot, QObject
 
-import json
 
 import logging
 import time
-from time import sleep
 
 from PySide2.QtWidgets import QApplication, QMainWindow
 from PyQt5 import uic, QtWidgets,QtCore
-from PyQt5.QtWidgets import QMainWindow, QLabel, QGridLayout, QWidget
-from PyQt5.QtWidgets import QPushButton
-from PyQt5.QtWidgets import QMessageBox
 from PyQt5.QtGui import QIcon
-from PyQt5.QtCore import QSize
-Form, Window = uic.loadUiType("qtOBSMIDI.ui")
-import mido, threading, sys, atexit, json, time, signal, socket
+
+from PyQt5.QtCore import   pyqtSlot, pyqtSignal
+import mido, sys, json,  signal
 from tinydb import TinyDB, Query
 from websocket import create_connection
 global worker
@@ -25,7 +20,6 @@ record=False
 serverIP = "localhost"
 serverPort = "4444"
 ####
-global stop_threads
 rowNumber=0
 
 database = TinyDB("config.json", indent=4)
@@ -88,6 +82,7 @@ btnStart=False
 import ast
 ignore = 255
 savetime1 = time.time()
+
 def ScriptExit(signal, frame):
     logging.info("Closing midi ports...")
     for port in midiports:
@@ -407,6 +402,7 @@ def renameDevice():
 
 def getDevices():
     availableinDeviceList = mido.get_input_names()
+
     availableoutDeviceList = mido.get_output_names()
 
     deviceList = []
@@ -421,8 +417,7 @@ def getDevices():
         form.Combo_OutputDevices.insertItem(counter, device)
     else:
         logging.info(availableoutDeviceList)
-        x = AlertWindow()
-        x.show()
+
 
 
     for device in availableinDeviceList:
@@ -436,16 +431,30 @@ def getDevices():
     if counter > 1:
         logging.info(str(counter))
 
-        logging.info("Connecting to Devices")
-        connectToDevice()
 
 
+
+def connectToDevice():
+    devices = devdb.all()
+    for device in devices: #gave up on documentation here
+        try:
+            tempmidiport = mido.open_input(device["devicename"],callback=midi.handle)
+            tempobj = {"id": device.doc_id, "object": tempmidiport, "devicename": device["devicename"]}
+            midiports.append(tempobj)
+
+            logging.info("successfully opened" + str(device["devicename"]))
+        except:
+            logging.info("\nCould not open", str(device["devicename"]))
+            logging.info("The midi device might be used by another application/not plugged in/have a different name.")
+            logging.info("Please close the device in the other application/plug it in/select the rename option in the device management menu and restart this script.\n")
+            #QtWidgets.QMessageBox.Critical(self, "Could not open", "The midi device might be used by another application/not plugged in/have a different name.")
+            database.close()
+            #sys.exit(5)
 
 
 @Slot(int)
 def setActionsSelector(int):
     form.Combo_Action.clear()
-    form.table_incoming.clear()
     counter = 0
     if (int == 0):
         for Action in buttonActions:
@@ -475,109 +484,42 @@ def saveAction():
     print(msg_type, msgNoC, input_type, action, deviceID)
     #saveButtonToFile(msg_type, msgNoC, input_type, action, deviceID)
     # note_on, 20, button, action, deviceID
-class MyThread(threading.Thread):
+def entryExists(value):
+    x=form.list_action.findItems(str(value), QtCore.Qt.MatchExactly | QtCore.Qt.MatchRecursive)
+    if x!=[]:
+        return True
+    else:
+        return False
+class handler(QtCore.QObject):
+    closed=pyqtSignal()
+    SendMessage=pyqtSignal(str,str ,name="SendMessage")
+
+    def handle(self,message):
+        logging.info(str(message))
+        logging.info(message.type)
+
+        if message.type == "note_on":
+            logging.info("note on message")
+            logging.info(message.note)
+            if entryExists(message.note):
+                logging.info("Note entryExists")
+
+            else:
+                logging.info("Note Does not exist")
+                self.SendMessage.emit( "note_on", str(message.note))
+                #AddNewRow( "note_on", str(message.note))
+
+        elif message.type == "control_change":
+            if entryExists(message.control):
+                logging.info("CC entryExists")
+            else:
+                logging.info("CC Does not exist")
+                self.SendMessage.emit( "control_change", str(message.control))
+
+                #AddNewRow("note_on", str(message.control))
 
 
-    def __init__(self, interval):
-        logging.info("starting Thread")
-        self.stop_event = threading.Event()
-        self.interval = interval
-        super(MyThread, self).__init__()
-
-    # function using _stop function
-
-
-    def run(self):
-        while not self.stop_event.is_set():
-            self.main()
-            # wait self.interval seconds or until the stop_event is set
-            self.stop_event.wait(self.interval)
-
-    def terminate(self):
-           self.stop_event.set()
-    def main(self):
-        #logging.info("starting")
-        global ignore
-        global savetime1
-        global rowNumber
-        global value
-        #global editTable
-
-        note =""
-
-        for device in midiports:
-            try:
-                msg = device["object"].poll()
-
-                #logging.info(msg)
-                x=msg.dict()
-
-
-                # Allows for recording changed input if note or CC address is not already in list. Filtered by Note or CC (button or fader)
-                # TODO: Figure out how to do this without filtering.
-
-
-                if form.InputTypeSelector.currentText() == "Button":
-                    items = str(x["note"])
-                    logging.info("testing 234")
-                    logging.info(editTable)
-                    logging.info(table)
-                    editTable.AddNewRow(self, "note_on", str(items))
-                    #if form.list_action.findText(items, QtCore.Qt.MatchExactly | QtCore.Qt.MatchRecursive)<0:
-
-                        #form.table_incoming.insertItem(rowNumber, str(items))
-
-
-                else:
-                    items = str(x["control"])
-                    if form.list_action.findText(items, QtCore.Qt.MatchExactly | QtCore.Qt.MatchRecursive)<0:
-                        editTable.AddNewRow(self, "control_change", str(items))
-                        #form.table_incoming.insertItem(rowNumber, str(items))
-
-                if not items:
-                    #form.table_incoming.insertRow(rowNumber)
-                    logging.info("start for loop")
-                    for cn, data in enumerate (x):
-                        #logging.info(cn)
-                        #logging.info(x[data])
-                        logging.info("inside for loop")
-                        #insertTable.add(insertTable, rowNumber, cn, x[data]);
-
-                        #form.table_incoming.setItem(rowNumber, cn, QtWidgets.QTableWidgetItem(str(x[data])))
-                    rowNumber+=1
-                    logging.info("end for loop")
-
-
-                    value = str(x["control"])
-                    note = str(x["note"])
-
-                    #logging.info()
-
-                    msg.reset()
-                    #form.list_action.setItem(rcount, ccount, QtWidgets.QTableWidgetItem(RowData.get(str(data))))
-            except:
-                #blah
-                #logging.info(form.InputTypeSelector.currentText())
-                x=1
-                #logging.info("nonemsg")
-
-
-class AlertWindow(QMainWindow):
-    def __init__(self):
-        QMainWindow.__init__(self)
-
-        self.setMinimumSize(QSize(300, 200))
-        self.setWindowTitle("PyQt messagebox example - pythonprogramminglanguage.com")
-
-        pybutton = QtWidgets.QPushButton('Show messagebox', self)
-        pybutton.clicked.connect(self.clickMethod)
-        pybutton.resize(200,64)
-        pybutton.move(50, 50)
-
-    def clickMethod(self):
-            QMessageBox.critical(self, "Title", "Message")
-
-
+            logging.info("Control change message")
 
 
 class EditTable():
@@ -669,39 +611,43 @@ class EditTable():
         form.list_action.setItem(self.rowNumber,6,QtWidgets.QTableWidgetItem(option2))
         self.rowNumber=+1
 
-    def AddNewRow(self,msg_type, msgNoC):
-        rowNumber=form.list_action.rowCount()
-        form.list_action.insertRow(rowNumber)
-        logging.info("addNewRow type- "+str(msg_type))
-        logging.info("addNewRow NOC- "+str(msgNoC))
-        logging.info("addNewRow # "+str(rowNumber))
-        form.list_action.setItem(rowNumber,0,QtWidgets.QTableWidgetItem())
-        logging.info("set item 0")
-        wid=editTable.add_msg_type_drop(msg_type)
-        logging.info("created cell widget")
+    @Slot(str, str)
+    def AddNewRow(self, msg_type, msgNoC):
+       form.list_action.insertRow(rowNumber)
+       logging.info("addNewRow type- "+str(msg_type))
+       logging.info("addNewRow NOC- "+str(msgNoC))
+       logging.info("addNewRow # "+str(rowNumber))
+       form.list_action.setItem(rowNumber,0,QtWidgets.QTableWidgetItem())
+       logging.info("set item 0")
+       wid=editTable.add_msg_type_drop(msg_type)
+       logging.info("created cell widget")
 
-        form.list_action.setCellWidget(rowNumber,0, wid)
-        logging.info("set cell widget")
+       form.list_action.setCellWidget(rowNumber,0, wid)
+       logging.info("set cell widget")
 
-        form.list_action.setItem(rowNumber,1,QtWidgets.QTableWidgetItem(msgNoC))
-        logging.info("set item 1")
-        #form.list_action.setItem(self.rowNumber,2,QtWidgets.QTableWidgetItem(inputType))
-        form.list_action.setItem(rowNumber,2,QtWidgets.QTableWidgetItem())
-        logging.info("set item 2")
-        form.list_action.setCellWidget(rowNumber,2, editTable.add_input_type_drop(""))
-        logging.info("set Cell Widget 2")
+       form.list_action.setItem(rowNumber,1,QtWidgets.QTableWidgetItem(msgNoC))
+       logging.info("set item 1")
+       #form.list_action.setItem(self.rowNumber,2,QtWidgets.QTableWidgetItem(inputType))
+       form.list_action.setItem(rowNumber,2,QtWidgets.QTableWidgetItem())
+       logging.info("set item 2")
+       form.list_action.setCellWidget(rowNumber,2, editTable.add_input_type_drop(""))
+       logging.info("set Cell Widget 2")
 
-        form.list_action.setItem(rowNumber,4,QtWidgets.QTableWidgetItem(""))
-        logging.info("set item 4")
-        form.list_action.setItem(rowNumber,3,QtWidgets.QTableWidgetItem(""))
-        logging.info("set item 3")
-        form.list_action.setItem(rowNumber,5,QtWidgets.QTableWidgetItem(""))
-        logging.info("set item 5")
-        form.list_action.setItem(rowNumber,6,QtWidgets.QTableWidgetItem(str(rowNumber)))
-        logging.info("set item 6")
-        logging.info("completed adding row")
+       form.list_action.setItem(rowNumber,4,QtWidgets.QTableWidgetItem(""))
+       logging.info("set item 4")
+       form.list_action.setItem(rowNumber,3,QtWidgets.QTableWidgetItem(""))
+       logging.info("set item 3")
+       form.list_action.setItem(rowNumber,5,QtWidgets.QTableWidgetItem(""))
+       logging.info("set item 5")
+       form.list_action.setItem(rowNumber,6,QtWidgets.QTableWidgetItem(str(rowNumber)))
+       logging.info("set item 6")
+       logging.info("completed adding row")
 
-
+    @Slot(str,str)
+    def testing(self,type, msg):
+        logging.info(type)
+        form.testlabel2.setText(msg)
+        form.testlabel.setText(type)
     # Add one full row at a time,
     # Add actions in class to handle when things change in drop down
     #Pre populate drop down.
@@ -778,36 +724,17 @@ def flatten():
     global worker
     #form.btn_RecordInput.isFlat=True
     if form.btn_RecordInput.isChecked()==True:
-        worker = MyThread(interval=.01)
-        worker.start()
+
         tray.showMessage("Starting","Recording",icon)
 
 
     if form.btn_RecordInput.isChecked()==False:
-        logging.info("stop worker")
-        worker.terminate()
+
         tray.showMessage("Stopping","Stopping Recording",icon)
 
 
 
-def connectToDevice():
-    devices = devdb.all()
-    for device in devices: #gave up on documentation here
-        try:
-            tempmidiport = mido.open_input(device["devicename"])
-            tempobj = {"id": device.doc_id, "object": tempmidiport, "devicename": device["devicename"]}
-            midiports.append(tempobj)
-            info="successfully opened" + str(device["devicename"])
-            logging.info(info)
-        except:
-            logging.info("\nCould not open", str(device["devicename"]))
-            logging.info("The midi device might be used by another application/not plugged in/have a different name.")
-            logging.info("Please close the device in the other application/plug it in/select the rename option in the device management menu and restart this script.\n")
-            #QtWidgets.QMessageBox.Critical(self, "Could not open", "The midi device might be used by another application/not plugged in/have a different name.")
-            mainWin = AlertWindow()
-            mainWin.show()
-            database.close()
-            sys.exit(5)
+
 
 def ChangedScenes(scene):
     checkIfSourceHasGainFilter(scene)
@@ -822,7 +749,6 @@ def disconnectFromDevice():
     logging.info("Disconnect From Device")
 
 def myExitHandler():
-
     if form.btn_RecordInput.isChecked()==True:
         logging.info("stop worker")
         worker.terminate()
@@ -864,14 +790,16 @@ def stopOBSconnection():
 if __name__ == "__main__":
     format = "%(asctime)s: %(message)s"
     logging.basicConfig(format=format, level=logging.INFO, datefmt="%H:%M:%S")
+    midi=handler()
+
     signal.signal(signal.SIGINT, ScriptExit)
+    Form, Window = uic.loadUiType("qtOBSMIDI.ui")
+
     app = QApplication(sys.argv)
     app.aboutToQuit.connect(myExitHandler)
     window = Window()
     form = Form()
     form.setupUi(window)
-
-
     window.show()
     logging.info("Program Startup")
     startuped=True
@@ -879,13 +807,13 @@ if __name__ == "__main__":
         startup()
         startuped=False
     #initialize table
-    global editTable
     editTable=EditTable(form)
     form.Combo_scene_list_box.currentTextChanged.connect(ChangedScenes)
     form.btn_Add.clicked.connect(saveAction)
     form.btn_RecordInput.clicked.connect(flatten)
     form.InputTypeSelector.currentIndexChanged.connect(setActionsSelector)
     form.btn_Start.clicked.connect(startStopBtnHandle)
+
     #Setup System Tray
     icon = QIcon("icon.png")
     Menu=QtWidgets.QMenu()
@@ -902,11 +830,11 @@ if __name__ == "__main__":
 
 
     logging.info(actionQuit)
+    #midi.SendMessage.connect(editTable.testing)
+    midi.SendMessage.connect(editTable.AddNewRow)
 
     tray.show()
-
-
-
+    connectToDevice()
     updateSceneList()
     sys.exit(app.exec_())
 
