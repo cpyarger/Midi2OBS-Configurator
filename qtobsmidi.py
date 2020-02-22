@@ -1,6 +1,7 @@
 # This Python file uses the following encoding: utf-8
 from PySide2.QtCore import Signal, Slot, QObject
 
+import json
 
 import logging
 import time
@@ -83,7 +84,8 @@ gdisourcesList = []
 value = ""
 note = ""
 midiports = []
-
+btnStart=False
+import ast
 ignore = 255
 savetime1 = time.time()
 def ScriptExit(signal, frame):
@@ -437,20 +439,7 @@ def getDevices():
         logging.info("Connecting to Devices")
         connectToDevice()
 
-def read_from_file():
-    result = db.all()
 
-    for rowNumber, RowData in enumerate (result):
-        form.list_action.insertRow(rowNumber)
-        logging.info(RowData)
-
-        #m_pTableWidget->setItem(0, 1, new QTableWidgetItem("Hello"));
-        #editTable.add(EditTable, rowNumber,RowData, colum_number, data);
-        form.list_action.setItem(rowNumber,0,QtWidgets.QTableWidgetItem(str(RowData["msg_type"])))
-        form.list_action.setItem(rowNumber,1,QtWidgets.QTableWidgetItem(str(RowData["msgNoC"])))
-        form.list_action.setItem(rowNumber,2,QtWidgets.QTableWidgetItem(str(RowData["input_type"])))
-        form.list_action.setItem(rowNumber,4,QtWidgets.QTableWidgetItem(str(RowData["action"])))
-        form.list_action.setItem(rowNumber,3,QtWidgets.QTableWidgetItem(str(RowData["deviceID"])))
 
 
 @Slot(int)
@@ -487,12 +476,13 @@ def saveAction():
     #saveButtonToFile(msg_type, msgNoC, input_type, action, deviceID)
     # note_on, 20, button, action, deviceID
 class MyThread(threading.Thread):
+
+
     def __init__(self, interval):
         logging.info("starting Thread")
         self.stop_event = threading.Event()
         self.interval = interval
         super(MyThread, self).__init__()
-
 
     # function using _stop function
 
@@ -511,6 +501,8 @@ class MyThread(threading.Thread):
         global savetime1
         global rowNumber
         global value
+        #global editTable
+
         note =""
 
         for device in midiports:
@@ -527,28 +519,28 @@ class MyThread(threading.Thread):
 
                 if form.InputTypeSelector.currentText() == "Button":
                     items = str(x["note"])
-                    logging.info(x)
-                    logging.info(items)
-                    if form.table_incoming.findText(items, QtCore.Qt.MatchExactly | QtCore.Qt.MatchRecursive)<0:
-                        form.table_incoming.insertItem(rowNumber, str(items))
-                        rowNumber+=1
+                    logging.info("testing 234")
+                    logging.info(editTable)
+                    logging.info(table)
+                    editTable.AddNewRow(self, "note_on", str(items))
+                    #if form.list_action.findText(items, QtCore.Qt.MatchExactly | QtCore.Qt.MatchRecursive)<0:
+
+                        #form.table_incoming.insertItem(rowNumber, str(items))
+
 
                 else:
                     items = str(x["control"])
-                    if form.table_incoming.findText(items, QtCore.Qt.MatchExactly | QtCore.Qt.MatchRecursive)<0:
+                    if form.list_action.findText(items, QtCore.Qt.MatchExactly | QtCore.Qt.MatchRecursive)<0:
+                        editTable.AddNewRow(self, "control_change", str(items))
+                        #form.table_incoming.insertItem(rowNumber, str(items))
 
-
-                        form.table_incoming.insertItem(rowNumber, str(items))
-                        rowNumber+=1
                 if not items:
-
                     #form.table_incoming.insertRow(rowNumber)
-
                     logging.info("start for loop")
                     for cn, data in enumerate (x):
                         #logging.info(cn)
                         #logging.info(x[data])
-                        logging.info(x)
+                        logging.info("inside for loop")
                         #insertTable.add(insertTable, rowNumber, cn, x[data]);
 
                         #form.table_incoming.setItem(rowNumber, cn, QtWidgets.QTableWidgetItem(str(x[data])))
@@ -588,52 +580,136 @@ class AlertWindow(QMainWindow):
 
 
 
-class editTable():
+class EditTable():
+    rowNumber=0
+    #define row dropdowns
     def __init__(self, form):
+        result = db.all()
+        self.rowNumber=rowNumber
+        for rowNumbers, RowData in enumerate (result):
+            res = ast.literal_eval(RowData["action"])
+            logging.info(res["request-type"])
+
+            #m_pTableWidget->setItem(0, 1, new QTableWidgetItem("Hello"));
+            #editTable.add(EditTable, rowNumber,RowData, colum_number, data);
+            option1=""
+            option2=""
+            if str(res["request-type"]) == "SetCurrentScene":
+                option1 = res["scene-name"]
+            elif str(res["request-type"]) == "SetVolume":
+                option1 = res["source"]
+            else:
+                option1= "error"
+
+            self.addRow(str(RowData["msg_type"]),str(RowData["msgNoC"]),str(RowData["input_type"]),str(res["request-type"]),str(RowData["deviceID"]),str(option1),str(option2))
+
         self.variable="foo"
         self.table()
+
+    def add_msg_type_drop(self, msg):
+        logging.info("type " +str(msg))
+
+        drop_msg_type=QtWidgets.QComboBox()
+        drop_msg_type.insertItems(0, ["Control Change", "Program Change", "Note On"])
+
+        if msg == "control_change":
+
+            x=0
+            drop_msg_type.setCurrentIndex(x)
+        if msg == "program_change":
+
+            x=1
+            drop_msg_type.setCurrentIndex(x)
+
+        if msg=="note_on":
+            x=2
+            drop_msg_type.setCurrentIndex(x)
+        return drop_msg_type
+
+    def add_input_type_drop(self, msg):
+        x=0
+
+        drop_msg_type=QtWidgets.QComboBox()
+
+        drop_msg_type.insertItems(0, ["choose","button", "Fader"])
+
+        if msg == "button":
+            x=1
+            drop_msg_type.setCurrentIndex(x)
+        if msg == "fader":
+            x=2
+            drop_msg_type.setCurrentIndex(x)
+
+        else:
+            x=0
+            drop_msg_type.setCurrentIndex(x)
+
+
+        return drop_msg_type
+
+
     def table(self):
         self.tableWidget = form.list_action
-    def add(self, rowNumber,RowData, colum_number, data ):
-        self.tableWidget.setItem(rowNumber, colum_number, QtWidgets.QTableWidgetItem())
-        comboBox = QtWidgets.QComboBox()
-        comboBox.addItem( str(RowData.get(str(data))))
-        self.tableWidget.setCellWidget(rowNumber, colum_number, comboBox)
-# Add one full row at a time,
-# Add actions in class to handle when things change in drop down
-#Pre populate drop down.
-# or set it up so that an edit area is populated on a click
-# Lets go with # 2 for now
+
+    def addRow(self, mtype, msgNoC, inputType, action, deviceID, option1, option2):
+        form.list_action.insertRow(self.rowNumber)
+
+        form.list_action.setItem(self.rowNumber,0,QtWidgets.QTableWidgetItem())
+        form.list_action.setCellWidget(self.rowNumber,0, self.add_msg_type_drop(mtype))
+
+        form.list_action.setItem(self.rowNumber,1,QtWidgets.QTableWidgetItem(msgNoC))
+
+        #form.list_action.setItem(self.rowNumber,2,QtWidgets.QTableWidgetItem(inputType))
+        form.list_action.setItem(self.rowNumber,2,QtWidgets.QTableWidgetItem())
+        form.list_action.setCellWidget(self.rowNumber,2, self.add_input_type_drop(inputType))
+
+        form.list_action.setItem(self.rowNumber,4,QtWidgets.QTableWidgetItem(action))
+        form.list_action.setItem(self.rowNumber,3,QtWidgets.QTableWidgetItem(deviceID))
+        form.list_action.setItem(self.rowNumber,5,QtWidgets.QTableWidgetItem(option1))
+        form.list_action.setItem(self.rowNumber,6,QtWidgets.QTableWidgetItem(option2))
+        self.rowNumber=+1
+
+    def AddNewRow(self,msg_type, msgNoC):
+        rowNumber=form.list_action.rowCount()
+        form.list_action.insertRow(rowNumber)
+        logging.info("addNewRow type- "+str(msg_type))
+        logging.info("addNewRow NOC- "+str(msgNoC))
+        logging.info("addNewRow # "+str(rowNumber))
+        form.list_action.setItem(rowNumber,0,QtWidgets.QTableWidgetItem())
+        logging.info("set item 0")
+        wid=editTable.add_msg_type_drop(msg_type)
+        logging.info("created cell widget")
+
+        form.list_action.setCellWidget(rowNumber,0, wid)
+        logging.info("set cell widget")
+
+        form.list_action.setItem(rowNumber,1,QtWidgets.QTableWidgetItem(msgNoC))
+        logging.info("set item 1")
+        #form.list_action.setItem(self.rowNumber,2,QtWidgets.QTableWidgetItem(inputType))
+        form.list_action.setItem(rowNumber,2,QtWidgets.QTableWidgetItem())
+        logging.info("set item 2")
+        form.list_action.setCellWidget(rowNumber,2, editTable.add_input_type_drop(""))
+        logging.info("set Cell Widget 2")
+
+        form.list_action.setItem(rowNumber,4,QtWidgets.QTableWidgetItem(""))
+        logging.info("set item 4")
+        form.list_action.setItem(rowNumber,3,QtWidgets.QTableWidgetItem(""))
+        logging.info("set item 3")
+        form.list_action.setItem(rowNumber,5,QtWidgets.QTableWidgetItem(""))
+        logging.info("set item 5")
+        form.list_action.setItem(rowNumber,6,QtWidgets.QTableWidgetItem(str(rowNumber)))
+        logging.info("set item 6")
+        logging.info("completed adding row")
 
 
-class InsertTable():
-    def __init__(self, form):
-        self.table()
-    def row(self):
-        x=""
-        type=""
-        time=""
-        control=""
-        value=""
-        #form.list_action.setItem(rowNumber,0,QtWidgets.QTableWidgetItem(str(RowData["msg_type"])))
-        #form.list_action.setItem(rowNumber,1,QtWidgets.QTableWidgetItem(str(RowData["msgNoC"])))
-        #form.list_action.setItem(rowNumber,2,QtWidgets.QTableWidgetItem(str(RowData["input_type"])))
-        #form.list_action.setItem(rowNumber,4,QtWidgets.QTableWidgetItem(str(RowData["action"])))
-        #form.list_action.setItem(rowNumber,3,QtWidgets.QTableWidgetItem(str(RowData["deviceID"])))
+    # Add one full row at a time,
+    # Add actions in class to handle when things change in drop down
+    #Pre populate drop down.
+    # or set it up so that an edit area is populated on a click
+    # Lets go with # 2 for now
 
-    def table(self):
-        self.tableWidget = form.table_incoming
 
-    def typeButton(self):
-        return buttonActions
-    def typeFader(self):
-        return faderActions
-    def add(self, rowNumber, colum_number, data ):
-        self.tableWidget.setItem(rowNumber, colum_number, QtWidgets.QTableWidgetItem())
-        comboBox = QtWidgets.QComboBox()
-        comboBox.addItem( str(data))
-        logging.info("adding "+data+" to table")
-        self.tableWidget.setCellWidget(rowNumber, colum_number, comboBox)
+
 
 
 def setupButtonEvents(action, note, type, deviceID) :
@@ -704,14 +780,14 @@ def flatten():
     if form.btn_RecordInput.isChecked()==True:
         worker = MyThread(interval=.01)
         worker.start()
-        tray.showMessage("Test","Recording",icon)
-        record=True
+        tray.showMessage("Starting","Recording",icon)
+
 
     if form.btn_RecordInput.isChecked()==False:
         logging.info("stop worker")
         worker.terminate()
-        tray.showMessage("Test","Stopping Recording",icon)
-        record=False
+        tray.showMessage("Stopping","Stopping Recording",icon)
+
 
 
 def connectToDevice():
@@ -754,10 +830,11 @@ def myExitHandler():
 
 def startup():
     setActionsSelector(0)
-    read_from_file()
+
     getDevices()
 
 class qtobsmidi(QMainWindow):
+
     def currentIndexChanged(self, qmodelindex):
             item = self.InputTypeSelector.currentItem()
             logging.info(str(item.index()))
@@ -765,6 +842,25 @@ class qtobsmidi(QMainWindow):
         QMainWindow.__init__(self)
 
 
+def startStopBtnHandle():
+    global btnStart
+    if btnStart == False:
+       startOBSconnection()
+       form.btn_Start.setText("Stop")
+       btnStart = True
+    elif btnStart == True:
+        stopOBSconnection()
+        form.btn_Start.setText("Start")
+        btnStart = False
+
+def startOBSconnection():
+    #Disconnect from setup connection to obs and Midi
+    #Call OBSMIDI script
+    tray.showMessage("Connecting","Connecting to OBS",icon)
+    logging.info("Connecting to OBS")
+def stopOBSconnection():
+    icon.Off
+    tray.showMessage("Disconnecting","disconnecting from OBS",icon)
 if __name__ == "__main__":
     format = "%(asctime)s: %(message)s"
     logging.basicConfig(format=format, level=logging.INFO, datefmt="%H:%M:%S")
@@ -774,8 +870,7 @@ if __name__ == "__main__":
     window = Window()
     form = Form()
     form.setupUi(window)
-    EditTable=editTable(form)
-    insertTable=InsertTable(form)
+
 
     window.show()
     logging.info("Program Startup")
@@ -783,21 +878,33 @@ if __name__ == "__main__":
     if startuped==True:
         startup()
         startuped=False
+    #initialize table
+    global editTable
+    editTable=EditTable(form)
     form.Combo_scene_list_box.currentTextChanged.connect(ChangedScenes)
     form.btn_Add.clicked.connect(saveAction)
     form.btn_RecordInput.clicked.connect(flatten)
     form.InputTypeSelector.currentIndexChanged.connect(setActionsSelector)
+    form.btn_Start.clicked.connect(startStopBtnHandle)
+    #Setup System Tray
     icon = QIcon("icon.png")
     Menu=QtWidgets.QMenu()
+    tray=QtWidgets.QSystemTrayIcon()
+    tray.setIcon(icon)
+    tray.setContextMenu(Menu)
+    actionStart=Menu.addAction("start")
+    actionStart.triggered.connect(startStopBtnHandle)
+
+    actionStop=Menu.addAction("Stop")
+    actionStop.triggered.connect(stopOBSconnection)
     actionQuit=Menu.addAction("Quit")
     actionQuit.triggered.connect(app.quit)
 
 
     logging.info(actionQuit)
-    tray=QtWidgets.QSystemTrayIcon()
-    tray.setIcon(icon)
-    tray.setContextMenu(Menu)
+
     tray.show()
+
 
 
     updateSceneList()

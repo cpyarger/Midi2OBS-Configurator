@@ -7,7 +7,7 @@
             "input_type": "fader",
             "scale_low": 0,
             "scale_high": 1,
-            "action": "{\"request-type\": \"SetVolume\", \"message-id\" : \"1\", \"source\": \"Desktop Audio\", \"volume\": %s}",
+            "action": "{\"request-type\": \"SetVolume\", \"message-id\" : \"1\", \"source\": \"Desktop Audio\", \"volume\": \"%s\"}",
             "cmd": "SetVolume",
             "deviceID": 1
         },
@@ -17,7 +17,7 @@
             "input_type": "fader",
             "scale_low": 0,
             "scale_high": 1,
-            "action": "{\"request-type\": \"SetVolume\", \"message-id\" : \"1\", \"source\": \"Mic/Aux\", \"volume\": %s}",
+            "action": "{\"request-type\": \"SetVolume\", \"message-id\" : \"1\", \"source\": \"Mic/Aux\", \"volume\": \"%s\"}",
             "cmd": "SetVolume",
             "deviceID": 1
         },
