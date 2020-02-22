@@ -11,9 +11,9 @@ from PyQt5.QtGui import QIcon
 
 from PyQt5.QtCore import   pyqtSlot, pyqtSignal
 import mido, sys, json,  signal
+import mido.ports as Multi
 from tinydb import TinyDB, Query
 from websocket import create_connection
-global worker
 
 record=False
 ####Change IP and Port here
@@ -147,7 +147,7 @@ def updateTransitionList():
     counter = 0
     global transitionList
     ws = create_connection("ws://" + serverIP + ":" + serverPort)
-    logging.info("\nUpdating transition list, plase wait")
+    #logging.info("\nUpdating transition list, plase wait")
     ws.send("""{"request-type": "GetTransitionList", "message-id": "999999"}""")
     result =  ws.recv()
     jsn = json.loads(result)
@@ -158,9 +158,9 @@ def updateTransitionList():
             form.box_transitions.insertItem(counter, str(item["name"]))
             counter += 1
 
-        logging.info("Transitions updated")
+        #logging.info("Transitions updated")
     else:
-        logging.info("Failed to update")
+        logging.info("Failed to update Transition List")
     ws.close()
 
 def updateSceneList():
@@ -168,7 +168,7 @@ def updateSceneList():
     global sceneListShort
     global sceneListLong
     ws = create_connection("ws://" + serverIP + ":" + serverPort)
-    logging.info("\nUpdating scene list, plase wait")
+    #logging.info("\nUpdating scene list, plase wait")
     ws.send("""{"request-type": "GetSceneList", "message-id": "9999999"}""")
     result =  ws.recv()
     jsn = json.loads(result)
@@ -189,7 +189,7 @@ def updateSceneList():
 def updateSpecialSources():
     global specialSourcesList
     ws = create_connection("ws://" + serverIP + ":" + serverPort)
-    logging.info("\nUpdating special sources, plase wait")
+    #logging.info("\nUpdating special sources, plase wait")
     ws.send("""{"request-type": "GetSpecialSources", "message-id": "99999999"}""")
     result =  ws.recv()
     jsn = json.loads(result)
@@ -200,7 +200,7 @@ def updateSpecialSources():
                 pass
             else:
                 specialSourcesList.append(jsn[line])
-        logging.info("Special sources updated")
+        #logging.info("Special sources updated")
     else:
         logging.info("Failed to update")
     ws.close()
@@ -210,7 +210,7 @@ def updateProfileList():
     counter = 0
     global profilesList
     ws = create_connection("ws://" + serverIP + ":" + serverPort)
-    logging.info("Updating Profiles List, plase wait")
+    #logging.info("Updating Profiles List, plase wait")
     ws.send("""{"request-type": "ListProfiles", "message-id": "99999999"}""")
     result =  ws.recv()
     jsn = json.loads(result)
@@ -220,7 +220,7 @@ def updateProfileList():
             profilesList.append(line["profile-name"])
             form.box_profiles.insertItem(counter, str(line["profile-name"]))
             counter += 1
-        logging.info("Profiles List updated")
+        #logging.info("Profiles List updated")
     else:
         logging.info("Failed to update")
 
@@ -231,7 +231,7 @@ def updatesceneCollectionList():
     counter = 0
     global sceneCollectionList
     ws = create_connection("ws://" + serverIP + ":" + serverPort)
-    logging.info("\nUpdating Scene Collection List, plase wait")
+    #logging.info("\nUpdating Scene Collection List, plase wait")
     ws.send("""{"request-type": "ListSceneCollections", "message-id": "99999999"}""")
     result =  ws.recv()
     jsn = json.loads(result)
@@ -242,7 +242,7 @@ def updatesceneCollectionList():
             form.box_collections.insertItem(counter, str(line["sc-name"]))
             counter += 1
 
-        logging.info("Scene Collection List updated")
+        #logging.info("Scene Collection List updated")
     else:
         logging.info("Failed to update")
     ws.close()
@@ -256,14 +256,14 @@ def getSourceFilters(sourcename):
     form.box_filtersFaders.clear()
     counter = 0
     ws = create_connection("ws://" + serverIP + ":" + serverPort)
-    logging.info("\nChecking source filters, plase wait")
+    #logging.info("\nChecking source filters, plase wait")
     ws.send('{"request-type": "GetSourceFilters", "message-id": "MIDItoOBS-getSourceFilters", "sourceName": "' + sourcename + '"}')
     result =  ws.recv()
     ws.close()
     jsn = json.loads(result)
     if jsn["message-id"] == "MIDItoOBS-getSourceFilters":
         form.box_filtersFaders.insertItem(counter, str(jsn["filters"]))
-        logging.info(str(jsn["filters"]))
+        #logging.info(str(jsn["filters"]))
 
         counter += 1
         return jsn["filters"]
@@ -386,59 +386,31 @@ def renameDevice():
 
 def getDevices():
     availableinDeviceList = mido.get_input_names()
-
-    availableoutDeviceList = mido.get_output_names()
-
     deviceList = []
-    counter = 0
-    counter2 = 0
-
     inUseDeviceList = devdb.all()
-    for device in availableoutDeviceList:
-
-        #logging.info("output: %s: %s" % (counter, device))
-        counter += 1
-        form.Combo_OutputDevices.insertItem(counter, device)
-    else:
-        logging.info(availableoutDeviceList)
-
-
-
     for device in availableinDeviceList:
+        logging.info(device)
         if devInDB(device, inUseDeviceList):
             pass
-        #logging.info("%s: %s" % (counter, device))
-        counter2 += 1
         deviceList.append(device)
-
-        form.Combo_InputDevices.insertItem(counter, device)
-    if counter > 1:
-        logging.info(str(counter))
-
-
-
 
 def connectToDevice():
     devices = devdb.all()
+    #multi=Multi.MultiPort(devices,yield_ports=True)
+    #multi.callback(callback=midi.handle)
+
     for device in devices: #gave up on documentation here
         try:
+            #logging.info("device name "+device["devicename"])
             tempmidiport = mido.open_input(device["devicename"],callback=midi.handle)
             tempobj = {"id": device.doc_id, "object": tempmidiport, "devicename": device["devicename"]}
             midiports.append(tempobj)
-
             #logging.info("successfully opened" + str(device["devicename"]))
         except:
             logging.info("\nCould not open", str(device["devicename"]))
-            logging.info("The midi device might be used by another application/not plugged in/have a different name.")
-            logging.info("Please close the device in the other application/plug it in/select the rename option in the device management menu and restart this script.\n")
             #QtWidgets.QMessageBox.Critical(self, "Could not open", "The midi device might be used by another application/not plugged in/have a different name.")
             database.close()
             #sys.exit(5)
-
-
-
-
-
 
 def entryExists(value):
     x=form.list_action.findItems(str(value), QtCore.Qt.MatchExactly | QtCore.Qt.MatchRecursive)
@@ -448,34 +420,19 @@ def entryExists(value):
         return False
 class handler(QtCore.QObject):
     closed=pyqtSignal()
-    SendMessage=pyqtSignal(str,str ,name="SendMessage")
-
+    SendMessage=pyqtSignal(str,str,name="SendMessage")
     def handle(self,message):
-        logging.info(str(message))
-        logging.info(message.type)
+        #logging.info(str(message))
+
+        #logging.info(message.type)
 
         if message.type == "note_on":
-            logging.info("note on message")
-            logging.info(message.note)
-            if entryExists(message.note):
-                logging.info("Note entryExists")
-
-            else:
-                logging.info("Note Does not exist")
+            if  entryExists(message.note)!=True:
                 self.SendMessage.emit( "note_on", str(message.note))
-                #AddNewRow( "note_on", str(message.note))
-
         elif message.type == "control_change":
-            if entryExists(message.control):
-                logging.info("CC entryExists")
-            else:
-                logging.info("CC Does not exist")
+            if entryExists(message.control)!=True:
                 self.SendMessage.emit( "control_change", str(message.control))
 
-                #AddNewRow("note_on", str(message.control))
-
-
-            logging.info("Control change message")
 
 
 class EditTable():
@@ -492,11 +449,25 @@ class EditTable():
             #editTable.add(EditTable, rowNumber,RowData, colum_number, data);
             option1=""
             option2=""
-            if str(res["request-type"]) == "SetCurrentScene":
+            if str(res["request-type"]) == "SetCurrentScene" or str(res["request-type"]) == "SetPreviewScene" or str(res["request-type"]) == "SetSourcePosition" or str(res["request-type"]) == "SetSourceRotation" or str(res["request-type"]) == "SetSourcescale":
                 option1 = res["scene-name"]
-            elif str(res["request-type"]) == "SetVolume":
+            elif str(res["request-type"]) == "SetVolume" or str(res["request-type"]) == "ToggleMute" or str(res["request-type"]) == "SetMute"or str(res["request-type"]) == "SetSyncOffset" or str(res["request-type"]) == "SetTextGDIPlusText" or str(res["request-type"]) == "SetBrowserSourceURL" or str(res["request-type"]) == "ReloadBrowserSource":
                 option1 = res["source"]
+            elif  str(res["request-type"]) == "TakeSourceScreenshot" or str(res["request-type"]) =="SetGainFilter" or str(res["request-type"]) =="EnableSourceFilter" or str(res["request-type"]) =="DisableSourceFilter" or str(res["request-type"]) =="ToggleSourceFilter":
+                option1 = res["sourceName"]
+
             else:
+                option1 = res["transition-name"]
+                option1 = res["duration"]
+                option2 = res["filterName"]
+                option1 = res["offset"]
+                option1 = res["scale"]
+                option1 = res["item"]
+                option1 = res["url"]
+                option1 = res["visible"]
+                option1 = res["position"]
+                option1 = res["rotation"]
+                option1 = res["sc-name"]
                 option1= "error"
 
             self.addRow(str(RowData["msg_type"]),str(RowData["msgNoC"]),str(RowData["input_type"]),str(res["request-type"]),str(RowData["deviceID"]),str(option1),str(option2))
@@ -566,13 +537,28 @@ class EditTable():
                 #logging.info(line)
                 sceneCombo.addItem(str(line["name"]))
         if existing:
-            logging.info(existing[0])
+            #logging.info(existing[0])
             x=sceneCombo.findText(existing[0], QtCore.Qt.MatchStartsWith | QtCore.Qt.MatchRecursive)
             sceneCombo.setCurrentIndex(x)
         return sceneCombo
 
 
-
+    def MakeInputDeviceList(self,*existing):
+        deviceCombo=QtWidgets.QComboBox()
+        inputs=mido.get_input_names()
+        for each in inputs:
+            deviceCombo.addItem(str(each))
+        if existing:
+            deviceCombo.setCurrentIndex(int(existing[0])-1)
+        return deviceCombo
+    def MakeOutputDeviceList(self, *existing):
+        deviceCombo=QtWidgets.QComboBox()
+        inputs=mido.get_input_names()
+        for each in inputs:
+            deviceCombo.addItem(str(each))
+        if existing:
+            deviceCombo.setCurrentIndex(int(existing[0])-1)
+        return deviceCombo
     def GetCurrentScene(self):
         ws = create_connection("ws://" + serverIP + ":" + serverPort)
         ws.send('{"request-type": "GetCurrentScene","message-id": "MIDItoOBS-checksourcegainfilter"}')
@@ -610,10 +596,9 @@ class EditTable():
     def MakeTransitionsSelector(self):
         logging.info("Setting up transitions")
 
-    def setupOption1(self,inputType,action,*extra):
+    def setupOption1(self,action,*extra):
         #logging.info("Setting up Option 1")
-        if inputType == "fader":
-            logging.info("faderType")
+            faderActions
             if action == "SetVolume":
                 return self.MakeVolumeSelector(*extra)
                 #logging.info("faderType")
@@ -629,13 +614,71 @@ class EditTable():
                 logging.info("faderType")
             elif action == "SetGainFilter":
                 logging.info("faderType")
-
-
-        elif inputType == "button":
-            if action == "SetCurrentScene":
+            #buttonActions
+            elif action == "SetCurrentScene":
                 return self.MakeSceneSelector(*extra)
             elif action == "SetPreviewScene":
+                logging.info("set preview scene "+ extra[0])
                 return self.MakeSceneSelector(*extra)
+            elif action == "TransitionToProgram":
+               logging.info("faderType")
+            elif action == "SetCurrentTransition":
+               logging.info("faderType")
+            elif action == "SetSourceVisibility":
+               logging.info("faderType")
+            elif action == "ToggleSourceVisibility":
+               logging.info("faderType")
+            elif action == "ToggleMute":
+               logging.info("faderType")
+            elif action == "SetMute":
+               logging.info("faderType")
+            elif action == "StartStopStreaming":
+               logging.info("faderType")
+            elif action == "StartStreaming":
+               logging.info("faderType")
+            elif action == "StopStreaming":
+               logging.info("faderType")
+            elif action == "StartStopRecording":
+               logging.info("faderType")
+            elif action == "StartRecording":
+               logging.info("faderType")
+            elif action == "StopRecording":
+               logging.info("faderType")
+            elif action == "StartStopReplayBuffer":
+               logging.info("faderType")
+            elif action == "StartReplayBuffer":
+               logging.info("faderType")
+            elif action == "StopReplayBuffer":
+               logging.info("faderType")
+            elif action == "SaveReplayBuffer":
+               logging.info("faderType")
+            elif action == "PauseRecording":
+               logging.info("faderType")
+            elif action == "ResumeRecording":
+               logging.info("faderType")
+            elif action == "SetTransitionDuration":
+               logging.info("faderType")
+            elif action == "SetCurrentProfile":
+               logging.info("faderType")
+            elif action == "SetCurrentSceneCollection":
+               logging.info("faderType")
+            elif action == "ResetSceneItem":
+               logging.info("faderType")
+            elif action == "SetTextGDIPlusText":
+               logging.info("faderType")
+            elif action == "SetBrowserSourceURL":
+               logging.info("faderType")
+            elif action == "ReloadBrowserSource":
+               logging.info("faderType")
+            elif action == "TakeSourceScreenshot":
+               logging.info("faderType")
+            elif action == "EnableSourceFilter":
+               logging.info("faderType")
+            elif action == "DisableSourceFilter":
+               logging.info("faderType")
+            elif action == "ToggleSourceFilter":
+               logging.info("faderType")
+
 
 
 
@@ -644,70 +687,64 @@ class EditTable():
 
         form.list_action.setItem(self.rowNumber,0,QtWidgets.QTableWidgetItem())
         form.list_action.setCellWidget(self.rowNumber,0, self.add_msg_type_drop(mtype))
+
         x= QtWidgets.QTableWidgetItem(msgNoC)
         x.setTextAlignment(QtCore.Qt.AlignCenter)
         form.list_action.setItem(self.rowNumber,1,x)
 
-        #form.list_action.setItem(self.rowNumber,2,QtWidgets.QTableWidgetItem(inputType))
         form.list_action.setItem(self.rowNumber,2,QtWidgets.QTableWidgetItem())
         form.list_action.setCellWidget(self.rowNumber,2, self.add_input_type_drop(inputType))
 
         form.list_action.setItem(self.rowNumber,4,QtWidgets.QTableWidgetItem())
         form.list_action.setCellWidget(self.rowNumber,4, self.MakeActionSelector(inputType, action))
 
-        y=QtWidgets.QTableWidgetItem(deviceID)
-        y.setTextAlignment(QtCore.Qt.AlignCenter)
-        form.list_action.setItem(self.rowNumber,3,y)
+        form.list_action.setItem(self.rowNumber,3,QtWidgets.QTableWidgetItem())
+        form.list_action.setCellWidget(self.rowNumber,3, self.MakeInputDeviceList(deviceID))
+
         form.list_action.setItem(self.rowNumber,5,QtWidgets.QTableWidgetItem())
-        form.list_action.setCellWidget(self.rowNumber,5, self.setupOption1(inputType,action, option1))
-        logging.info("option1 = "+str(option1))
+        form.list_action.setCellWidget(self.rowNumber,5, self.setupOption1(action, option1))
 
         a=QtWidgets.QTableWidgetItem(option2)
         a.setTextAlignment(QtCore.Qt.AlignCenter)
         form.list_action.setItem(self.rowNumber,6,a)
         self.rowNumber=+1
 
-    @Slot(str, str)
-    def AddNewRow(self, msg_type, msgNoC):
+    @Slot(str, str,int)
+    def AddNewRow(self, msg_type, msgNoC,deviceID=1):
+        form.list_action.insertRow(self.rowNumber)
 
+        inputType=""
+        option1=""
         if msg_type=="control_change":
             inputType="fader"
+            option1="SetVolume"
         elif msg_type == "note_on":
             inputType = "button"
+            option1="SetCurrentScene"
+        form.list_action.setItem(self.rowNumber,0,QtWidgets.QTableWidgetItem())
+        form.list_action.setCellWidget(self.rowNumber,0, editTable.add_msg_type_drop(msg_type))
 
-        form.list_action.insertRow(rowNumber)
-        logging.info("addNewRow type- "+str(msg_type))
-        logging.info("addNewRow NOC- "+str(msgNoC))
-        logging.info("addNewRow # "+str(rowNumber))
-        form.list_action.setItem(rowNumber,0,QtWidgets.QTableWidgetItem())
-        logging.info("set item 0")
-        wid=editTable.add_msg_type_drop(msg_type)
-        logging.info("created cell widget")
+        form.list_action.setItem(self.rowNumber,1,QtWidgets.QTableWidgetItem(msgNoC))
 
-        form.list_action.setCellWidget(rowNumber,0, wid)
-        logging.info("set cell widget")
+        form.list_action.setItem(self.rowNumber,2,QtWidgets.QTableWidgetItem())
+        form.list_action.setCellWidget(self.rowNumber,2, editTable.add_input_type_drop(inputType))
 
-        form.list_action.setItem(rowNumber,1,QtWidgets.QTableWidgetItem(msgNoC))
-        logging.info("set item 1")
-        #form.list_action.setItem(self.rowNumber,2,QtWidgets.QTableWidgetItem(inputType))
-        form.list_action.setItem(rowNumber,2,QtWidgets.QTableWidgetItem())
-        logging.info("set item 2")
-        form.list_action.setCellWidget(rowNumber,2, editTable.add_input_type_drop(""))
-        logging.info("set Cell Widget 2")
         form.list_action.setItem(self.rowNumber,4,QtWidgets.QTableWidgetItem())
         form.list_action.setCellWidget(self.rowNumber,4, self.MakeActionSelector(inputType))
-        logging.info("set item 4")
-        form.list_action.setItem(rowNumber,3,QtWidgets.QTableWidgetItem(""))
-        logging.info("set item 3")
-        form.list_action.setItem(rowNumber,5,QtWidgets.QTableWidgetItem(""))
-        logging.info("set item 5")
-        form.list_action.setItem(rowNumber,6,QtWidgets.QTableWidgetItem(str(rowNumber)))
-        logging.info("set item 6")
-        logging.info("completed adding row")
+
+        form.list_action.setItem(self.rowNumber,3,QtWidgets.QTableWidgetItem())
+        form.list_action.setCellWidget(self.rowNumber,3, self.MakeInputDeviceList(deviceID))
+
+        form.list_action.setItem(self.rowNumber,5,QtWidgets.QTableWidgetItem())
+        form.list_action.setCellWidget(self.rowNumber,5, self.setupOption1(inputType, option1))
+
+        form.list_action.setItem(self.rowNumber,6,QtWidgets.QTableWidgetItem(str(rowNumber)))
+
+        self.rowNumber+=1
 
     @Slot(str,str)
     def testing(self,type, msg):
-        logging.info(type)
+        #logging.info(type)
         form.testlabel2.setText(msg)
         form.testlabel.setText(type)
     # Add one full row at a time,
@@ -715,6 +752,24 @@ class EditTable():
     #Pre populate drop down.
     # or set it up so that an edit area is populated on a click
     # Lets go with # 2 for now
+
+def ResetMidiController():
+    outport= mido.open_output("X-TOUCH COMPACT 1")
+    counter=0
+    counter2=0
+    counter3=26
+    while counter <=39:
+        x=mido.Message("note_off", note=counter)
+        outport.send(x)
+        counter+=1
+    while counter2 <=9:
+        x=mido.Message("control_change", control=counter2,value=0)
+        outport.send(x)
+        counter2+=1
+    while counter3 <=41:
+        x=mido.Message("control_change", control=counter3,value=0)
+        outport.send(x)
+        counter3+=1
 
 
 def setupButtonEvents(action, note, type, deviceID) :
@@ -762,39 +817,6 @@ def newFaderSetup(action, NoC, msgType, deviceID):
             logging.info("The selected source has no gain filter. Please add it in the source filter dialog and try again.")
             #Setup Alertbox
 
-def midicallback(message, deviceID, deviceName):
-    global ignore
-    #logging.info("Received message", str(message))
-    #logging.info("from device", str(deviceName))
-
-    #logging.info("type", str(message.type))
-    #logging.info("devID", str(deviceID))
-    action=""
-    if message.type == "note_on": #button only
-        ignore = message.note
-        setupButtonEvents(action, message.note, message.type, deviceID)
-    elif message.type == "control_change": #button or fader
-        setupFaderEvents(action, message.control, message.type, deviceID)
-def thread_function(name):
-    logging.info("Thread %s: starting", str(name))
-
-
-def flatten():
-    global worker
-    #form.btn_RecordInput.isFlat=True
-    if form.btn_RecordInput.isChecked()==True:
-
-        tray.showMessage("Starting","Recording",icon)
-
-
-    if form.btn_RecordInput.isChecked()==False:
-
-        tray.showMessage("Stopping","Stopping Recording",icon)
-
-
-
-
-
 def ChangedScenes(scene):
     checkIfSourceHasGainFilter(scene)
     getSourceFilters(scene)
@@ -812,6 +834,8 @@ def myExitHandler():
 
 def startup():
     getDevices()
+    #
+
 
 class qtobsmidi(QMainWindow):
     def currentIndexChanged(self, qmodelindex):
@@ -836,7 +860,7 @@ def startOBSconnection():
     #Disconnect from setup connection to obs and Midi
     #Call OBSMIDI script
     tray.showMessage("Connecting","Connecting to OBS",icon)
-    logging.info("Connecting to OBS")
+    #logging.info("Connecting to OBS")
 def stopOBSconnection():
     icon.Off
     tray.showMessage("Disconnecting","disconnecting from OBS",icon)
@@ -854,14 +878,16 @@ if __name__ == "__main__":
     form.setupUi(window)
     window.show()
     logging.info("Program Startup")
+    midi=handler()
     startuped=True
     if startuped==True:
         startup()
         startuped=False
     #initialize table
-    midi=handler()
+
     editTable=EditTable(form)
 
+    #ResetMidiController()
 
     #Setup System Tray
     icon = QIcon("icon.png")
@@ -878,14 +904,13 @@ if __name__ == "__main__":
     actionQuit.triggered.connect(app.quit)
 
 
-    logging.info(actionQuit)
+    #logging.info(actionQuit)
     #midi.SendMessage.connect(editTable.testing)
     midi.SendMessage.connect(editTable.AddNewRow)
-
-    tray.show()
     connectToDevice()
+    tray.show()
     updateSceneList()
-    editTable.MakeVolumeSelector()
+    #editTable.MakeinputDeviceList()
     sys.exit(app.exec_())
 
     worker.terminate()

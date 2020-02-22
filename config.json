@@ -26,13 +26,13 @@
             "msgNoC": 47,
             "input_type": "button",
             "action": "{\"request-type\": \"SetPreviewScene\", \"message-id\" : \"1\", \"scene-name\" : \"In\"}",
-            "deviceID": 1
+            "deviceID": 2
         },
         "4": {
             "msg_type": "note_on",
             "msgNoC": 40,
             "input_type": "button",
-            "action": "{\"request-type\": \"SetCurrentScene\", \"message-id\" : \"1\", \"scene-name\" : \"Display\"}",
+            "action": "{\"request-type\": \"SetPreviewScene\", \"message-id\" : \"1\", \"scene-name\" : \"Display\"}",
             "deviceID": 1
         },
         "5": {
@@ -46,6 +46,9 @@
     "devices": {
         "1": {
             "devicename": "X-TOUCH COMPACT 0"
+        },
+        "2": {
+            "devicename": "nanoKONTROL2 1"
         }
     }
 }
