@@ -21,7 +21,6 @@ serverIP = "localhost"
 serverPort = "4444"
 ####
 rowNumber=0
-
 database = TinyDB("config.json", indent=4)
 db = database.table("keys", cache_size=0)
 inpType = ["Button", "Fader"]
@@ -165,7 +164,6 @@ def updateTransitionList():
     ws.close()
 
 def updateSceneList():
-    form.Combo_scene_list_box.clear()
     counter = 0
     global sceneListShort
     global sceneListLong
@@ -180,12 +178,11 @@ def updateSceneList():
         sceneListLong = jsn["scenes"]
         for item in jsn["scenes"]:
             sceneListShort.append(item["name"])
-            form.Combo_scene_list_box.insertItem(counter, str(item["name"]))
             counter += 1
 
-        logging.info("Scenes updated")
+        #logging.info("Scenes updated")
     else:
-        logging.info("Failed to update")
+        logging.info("Failed to update scenes")
 
     ws.close()
 
@@ -252,22 +249,9 @@ def updatesceneCollectionList():
 
 
 
-def checkIfSourceHasGainFilter(sourcename):
-    form.box_volumeFaders.clear()
-    counter = 0
-    ws = create_connection("ws://" + serverIP + ":" + serverPort)
-    logging.info("\nChecking source filters, plase wait")
-    ws.send('{"request-type": "GetSourceFilters", "message-id": "MIDItoOBS-checksourcegainfilter", "sourceName": "' + sourcename + '"}')
-    result =  ws.recv()
-    ws.close()
-    jsn = json.loads(result)
-    if jsn["message-id"] == "MIDItoOBS-checksourcegainfilter":
-        for line in jsn["filters"]:
-            if line["type"] == "gain_filter":
-                form.box_volumeFaders.insertItem(counter, str(line["name"]))
-                counter += 1
-                return line["name"]
-    return False
+
+
+
 def getSourceFilters(sourcename):
     form.box_filtersFaders.clear()
     counter = 0
@@ -442,7 +426,7 @@ def connectToDevice():
             tempobj = {"id": device.doc_id, "object": tempmidiport, "devicename": device["devicename"]}
             midiports.append(tempobj)
 
-            logging.info("successfully opened" + str(device["devicename"]))
+            #logging.info("successfully opened" + str(device["devicename"]))
         except:
             logging.info("\nCould not open", str(device["devicename"]))
             logging.info("The midi device might be used by another application/not plugged in/have a different name.")
@@ -452,38 +436,10 @@ def connectToDevice():
             #sys.exit(5)
 
 
-@Slot(int)
-def setActionsSelector(int):
-    form.Combo_Action.clear()
-    counter = 0
-    if (int == 0):
-        for Action in buttonActions:
-            counter += 1
-            form.Combo_Action.insertItem(counter, Action)
-        logging.info("0")
-    if (int == 1):
-        for Action in faderActions:
-            counter += 1
-            form.Combo_Action.insertItem(counter, Action)
-        logging.info("1")
-    form.Combo_Action.update()
-
-@Slot(int)
-def setOptionSelector(int):
-    #Set up options based on action
-    var=int
 
 
-def saveAction():
-    logging.info("save")
-    msg_type=str(" CC")
-    msgNoC=str(" 20")
-    input_type=str(form.InputTypeSelector.currentText())
-    action=str(form.Combo_Action.currentText())
-    deviceID=str(form.Combo_InputDevices.currentIndex()+1)
-    print(msg_type, msgNoC, input_type, action, deviceID)
-    #saveButtonToFile(msg_type, msgNoC, input_type, action, deviceID)
-    # note_on, 20, button, action, deviceID
+
+
 def entryExists(value):
     x=form.list_action.findItems(str(value), QtCore.Qt.MatchExactly | QtCore.Qt.MatchRecursive)
     if x!=[]:
@@ -530,7 +486,7 @@ class EditTable():
         self.rowNumber=rowNumber
         for rowNumbers, RowData in enumerate (result):
             res = ast.literal_eval(RowData["action"])
-            logging.info(res["request-type"])
+            #logging.info(res["request-type"])
 
             #m_pTableWidget->setItem(0, 1, new QTableWidgetItem("Hello"));
             #editTable.add(EditTable, rowNumber,RowData, colum_number, data);
@@ -549,23 +505,13 @@ class EditTable():
         self.table()
 
     def add_msg_type_drop(self, msg):
-        logging.info("type " +str(msg))
+        #logging.info("type " +str(msg))
 
         drop_msg_type=QtWidgets.QComboBox()
-        drop_msg_type.insertItems(0, ["Control Change", "Program Change", "Note On"])
+        drop_msg_type.insertItems(0, ["control_change", "program_change", "note_on"])
 
-        if msg == "control_change":
-
-            x=0
-            drop_msg_type.setCurrentIndex(x)
-        if msg == "program_change":
-
-            x=1
-            drop_msg_type.setCurrentIndex(x)
-
-        if msg=="note_on":
-            x=2
-            drop_msg_type.setCurrentIndex(x)
+        x=drop_msg_type.findText(msg, QtCore.Qt.MatchExactly | QtCore.Qt.MatchRecursive)
+        drop_msg_type.setCurrentIndex(x)
         return drop_msg_type
 
     def add_input_type_drop(self, msg):
@@ -573,18 +519,10 @@ class EditTable():
 
         drop_msg_type=QtWidgets.QComboBox()
 
-        drop_msg_type.insertItems(0, ["choose","button", "Fader"])
+        drop_msg_type.insertItems(0, ["button", "fader"])
 
-        if msg == "button":
-            x=1
-            drop_msg_type.setCurrentIndex(x)
-        if msg == "fader":
-            x=2
-            drop_msg_type.setCurrentIndex(x)
-
-        else:
-            x=0
-            drop_msg_type.setCurrentIndex(x)
+        x=drop_msg_type.findText(msg, QtCore.Qt.MatchExactly | QtCore.Qt.MatchRecursive)
+        drop_msg_type.setCurrentIndex(x)
 
 
         return drop_msg_type
@@ -593,55 +531,179 @@ class EditTable():
     def table(self):
         self.tableWidget = form.list_action
 
+
+
+    def MakeActionSelector(self, type, *action):
+        #logging.info("Setting up actions")
+        drop_msg_type=QtWidgets.QComboBox()
+        counter=0
+
+        if type == "button":
+            for each in buttonActions:
+                drop_msg_type.addItem(str(each))
+                counter+=1
+
+
+        elif type== "fader":
+            for each in faderActions:
+                drop_msg_type.addItem(str(each))
+                counter+=1
+        if action:
+
+
+            x=drop_msg_type.findText(action[0], QtCore.Qt.MatchExactly | QtCore.Qt.MatchRecursive)
+            drop_msg_type.setCurrentIndex(x)
+
+
+        return drop_msg_type
+
+    def MakeSceneSelector(self,*existing):
+        sceneCombo=QtWidgets.QComboBox()
+        updateSceneList()
+        updateSpecialSources()
+        for scene in sceneListLong:
+            for line in scene["sources"]:
+                #logging.info(line)
+                sceneCombo.addItem(str(line["name"]))
+        if existing:
+            logging.info(existing[0])
+            x=sceneCombo.findText(existing[0], QtCore.Qt.MatchStartsWith | QtCore.Qt.MatchRecursive)
+            sceneCombo.setCurrentIndex(x)
+        return sceneCombo
+
+
+
+    def GetCurrentScene(self):
+        ws = create_connection("ws://" + serverIP + ":" + serverPort)
+        ws.send('{"request-type": "GetCurrentScene","message-id": "MIDItoOBS-checksourcegainfilter"}')
+        result =  ws.recv()
+        ws.close()
+        jsn = json.loads(result)
+        return str(jsn["name"])
+
+    def MakeVolumeSelector(self,*existing):
+        volumeCombo=QtWidgets.QComboBox()
+
+        updateSceneList()
+        updateSpecialSources()
+        tempSceneList = []
+        for scene in sceneListLong:
+            for line in scene["sources"]:
+                if line["name"] not in tempSceneList:
+                    tempSceneList.append(line["name"])
+        for item in specialSourcesList:
+            tempSceneList.append(item)
+        source = tempSceneList
+        for each in source:
+            #logging.info(each)
+            volumeCombo.addItem(str(each))
+            #add code here for generating a dropdown
+        if existing:
+            x=volumeCombo.findText(existing[0], QtCore.Qt.MatchExactly | QtCore.Qt.MatchRecursive)
+            volumeCombo.setCurrentIndex(x)
+        return volumeCombo
+
+
+    def MakeProfileSelector(self):
+        logging.info("Setting up profiles")
+
+    def MakeTransitionsSelector(self):
+        logging.info("Setting up transitions")
+
+    def setupOption1(self,inputType,action,*extra):
+        #logging.info("Setting up Option 1")
+        if inputType == "fader":
+            logging.info("faderType")
+            if action == "SetVolume":
+                return self.MakeVolumeSelector(*extra)
+                #logging.info("faderType")
+            elif action == "SetSyncOffset":
+                logging.info("faderType")
+            elif action == "SetSourcePosition":
+                logging.info("faderType")
+            elif action == "SetSourceRotation":
+                logging.info("faderType")
+            elif action == "SetSourceScale":
+                logging.info("faderType")
+            elif action == "SetTransitionDuration":
+                logging.info("faderType")
+            elif action == "SetGainFilter":
+                logging.info("faderType")
+
+
+        elif inputType == "button":
+            if action == "SetCurrentScene":
+                return self.MakeSceneSelector(*extra)
+            elif action == "SetPreviewScene":
+                return self.MakeSceneSelector(*extra)
+
+
+
     def addRow(self, mtype, msgNoC, inputType, action, deviceID, option1, option2):
         form.list_action.insertRow(self.rowNumber)
 
         form.list_action.setItem(self.rowNumber,0,QtWidgets.QTableWidgetItem())
         form.list_action.setCellWidget(self.rowNumber,0, self.add_msg_type_drop(mtype))
-
-        form.list_action.setItem(self.rowNumber,1,QtWidgets.QTableWidgetItem(msgNoC))
+        x= QtWidgets.QTableWidgetItem(msgNoC)
+        x.setTextAlignment(QtCore.Qt.AlignCenter)
+        form.list_action.setItem(self.rowNumber,1,x)
 
         #form.list_action.setItem(self.rowNumber,2,QtWidgets.QTableWidgetItem(inputType))
         form.list_action.setItem(self.rowNumber,2,QtWidgets.QTableWidgetItem())
         form.list_action.setCellWidget(self.rowNumber,2, self.add_input_type_drop(inputType))
 
-        form.list_action.setItem(self.rowNumber,4,QtWidgets.QTableWidgetItem(action))
-        form.list_action.setItem(self.rowNumber,3,QtWidgets.QTableWidgetItem(deviceID))
-        form.list_action.setItem(self.rowNumber,5,QtWidgets.QTableWidgetItem(option1))
-        form.list_action.setItem(self.rowNumber,6,QtWidgets.QTableWidgetItem(option2))
+        form.list_action.setItem(self.rowNumber,4,QtWidgets.QTableWidgetItem())
+        form.list_action.setCellWidget(self.rowNumber,4, self.MakeActionSelector(inputType, action))
+
+        y=QtWidgets.QTableWidgetItem(deviceID)
+        y.setTextAlignment(QtCore.Qt.AlignCenter)
+        form.list_action.setItem(self.rowNumber,3,y)
+        form.list_action.setItem(self.rowNumber,5,QtWidgets.QTableWidgetItem())
+        form.list_action.setCellWidget(self.rowNumber,5, self.setupOption1(inputType,action, option1))
+        logging.info("option1 = "+str(option1))
+
+        a=QtWidgets.QTableWidgetItem(option2)
+        a.setTextAlignment(QtCore.Qt.AlignCenter)
+        form.list_action.setItem(self.rowNumber,6,a)
         self.rowNumber=+1
 
     @Slot(str, str)
     def AddNewRow(self, msg_type, msgNoC):
-       form.list_action.insertRow(rowNumber)
-       logging.info("addNewRow type- "+str(msg_type))
-       logging.info("addNewRow NOC- "+str(msgNoC))
-       logging.info("addNewRow # "+str(rowNumber))
-       form.list_action.setItem(rowNumber,0,QtWidgets.QTableWidgetItem())
-       logging.info("set item 0")
-       wid=editTable.add_msg_type_drop(msg_type)
-       logging.info("created cell widget")
 
-       form.list_action.setCellWidget(rowNumber,0, wid)
-       logging.info("set cell widget")
+        if msg_type=="control_change":
+            inputType="fader"
+        elif msg_type == "note_on":
+            inputType = "button"
 
-       form.list_action.setItem(rowNumber,1,QtWidgets.QTableWidgetItem(msgNoC))
-       logging.info("set item 1")
-       #form.list_action.setItem(self.rowNumber,2,QtWidgets.QTableWidgetItem(inputType))
-       form.list_action.setItem(rowNumber,2,QtWidgets.QTableWidgetItem())
-       logging.info("set item 2")
-       form.list_action.setCellWidget(rowNumber,2, editTable.add_input_type_drop(""))
-       logging.info("set Cell Widget 2")
+        form.list_action.insertRow(rowNumber)
+        logging.info("addNewRow type- "+str(msg_type))
+        logging.info("addNewRow NOC- "+str(msgNoC))
+        logging.info("addNewRow # "+str(rowNumber))
+        form.list_action.setItem(rowNumber,0,QtWidgets.QTableWidgetItem())
+        logging.info("set item 0")
+        wid=editTable.add_msg_type_drop(msg_type)
+        logging.info("created cell widget")
 
-       form.list_action.setItem(rowNumber,4,QtWidgets.QTableWidgetItem(""))
-       logging.info("set item 4")
-       form.list_action.setItem(rowNumber,3,QtWidgets.QTableWidgetItem(""))
-       logging.info("set item 3")
-       form.list_action.setItem(rowNumber,5,QtWidgets.QTableWidgetItem(""))
-       logging.info("set item 5")
-       form.list_action.setItem(rowNumber,6,QtWidgets.QTableWidgetItem(str(rowNumber)))
-       logging.info("set item 6")
-       logging.info("completed adding row")
+        form.list_action.setCellWidget(rowNumber,0, wid)
+        logging.info("set cell widget")
+
+        form.list_action.setItem(rowNumber,1,QtWidgets.QTableWidgetItem(msgNoC))
+        logging.info("set item 1")
+        #form.list_action.setItem(self.rowNumber,2,QtWidgets.QTableWidgetItem(inputType))
+        form.list_action.setItem(rowNumber,2,QtWidgets.QTableWidgetItem())
+        logging.info("set item 2")
+        form.list_action.setCellWidget(rowNumber,2, editTable.add_input_type_drop(""))
+        logging.info("set Cell Widget 2")
+        form.list_action.setItem(self.rowNumber,4,QtWidgets.QTableWidgetItem())
+        form.list_action.setCellWidget(self.rowNumber,4, self.MakeActionSelector(inputType))
+        logging.info("set item 4")
+        form.list_action.setItem(rowNumber,3,QtWidgets.QTableWidgetItem(""))
+        logging.info("set item 3")
+        form.list_action.setItem(rowNumber,5,QtWidgets.QTableWidgetItem(""))
+        logging.info("set item 5")
+        form.list_action.setItem(rowNumber,6,QtWidgets.QTableWidgetItem(str(rowNumber)))
+        logging.info("set item 6")
+        logging.info("completed adding row")
 
     @Slot(str,str)
     def testing(self,type, msg):
@@ -653,9 +715,6 @@ class EditTable():
     #Pre populate drop down.
     # or set it up so that an edit area is populated on a click
     # Lets go with # 2 for now
-
-
-
 
 
 def setupButtonEvents(action, note, type, deviceID) :
@@ -749,18 +808,12 @@ def disconnectFromDevice():
     logging.info("Disconnect From Device")
 
 def myExitHandler():
-    if form.btn_RecordInput.isChecked()==True:
-        logging.info("stop worker")
-        worker.terminate()
     logging.info("kill application")
 
 def startup():
-    setActionsSelector(0)
-
     getDevices()
 
 class qtobsmidi(QMainWindow):
-
     def currentIndexChanged(self, qmodelindex):
             item = self.InputTypeSelector.currentItem()
             logging.info(str(item.index()))
@@ -790,7 +843,6 @@ def stopOBSconnection():
 if __name__ == "__main__":
     format = "%(asctime)s: %(message)s"
     logging.basicConfig(format=format, level=logging.INFO, datefmt="%H:%M:%S")
-    midi=handler()
 
     signal.signal(signal.SIGINT, ScriptExit)
     Form, Window = uic.loadUiType("qtOBSMIDI.ui")
@@ -807,12 +859,9 @@ if __name__ == "__main__":
         startup()
         startuped=False
     #initialize table
+    midi=handler()
     editTable=EditTable(form)
-    form.Combo_scene_list_box.currentTextChanged.connect(ChangedScenes)
-    form.btn_Add.clicked.connect(saveAction)
-    form.btn_RecordInput.clicked.connect(flatten)
-    form.InputTypeSelector.currentIndexChanged.connect(setActionsSelector)
-    form.btn_Start.clicked.connect(startStopBtnHandle)
+
 
     #Setup System Tray
     icon = QIcon("icon.png")
@@ -836,6 +885,7 @@ if __name__ == "__main__":
     tray.show()
     connectToDevice()
     updateSceneList()
+    editTable.MakeVolumeSelector()
     sys.exit(app.exec_())
 
     worker.terminate()

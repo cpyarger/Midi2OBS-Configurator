@@ -25,21 +25,21 @@
             "msg_type": "note_on",
             "msgNoC": 47,
             "input_type": "button",
-            "action": "{\"request-type\": \"SetCurrentScene\", \"message-id\" : \"1\", \"scene-name\" : \"Scene\"}",
+            "action": "{\"request-type\": \"SetPreviewScene\", \"message-id\" : \"1\", \"scene-name\" : \"In\"}",
             "deviceID": 1
         },
         "4": {
             "msg_type": "note_on",
             "msgNoC": 40,
             "input_type": "button",
-            "action": "{\"request-type\": \"SetCurrentScene\", \"message-id\" : \"1\", \"scene-name\" : \"Scene\"}",
+            "action": "{\"request-type\": \"SetCurrentScene\", \"message-id\" : \"1\", \"scene-name\" : \"Display\"}",
             "deviceID": 1
         },
         "5": {
             "msg_type": "note_on",
             "msgNoC": 41,
             "input_type": "button",
-            "action": "{\"request-type\": \"SetCurrentScene\", \"message-id\" : \"1\", \"scene-name\" : \"Scene 2\"}",
+            "action": "{\"request-type\": \"SetCurrentScene\", \"message-id\" : \"1\", \"scene-name\" : \"Talk\"}",
             "deviceID": 1
         }
     },
