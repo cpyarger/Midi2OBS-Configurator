@@ -447,34 +447,36 @@ class EditTable():
 
             #m_pTableWidget->setItem(0, 1, new QTableWidgetItem("Hello"));
             #editTable.add(EditTable, rowNumber,RowData, colum_number, data);
-            option1=""
-            option2=""
+            option=[]
+
             if str(res["request-type"]) == "SetCurrentScene" or str(res["request-type"]) == "SetPreviewScene" or str(res["request-type"]) == "SetSourcePosition" or str(res["request-type"]) == "SetSourceRotation" or str(res["request-type"]) == "SetSourcescale":
-                option1 = res["scene-name"]
+                option.append(res["scene-name"])
             elif str(res["request-type"]) == "SetVolume" or str(res["request-type"]) == "ToggleMute" or str(res["request-type"]) == "SetMute"or str(res["request-type"]) == "SetSyncOffset" or str(res["request-type"]) == "SetTextGDIPlusText" or str(res["request-type"]) == "SetBrowserSourceURL" or str(res["request-type"]) == "ReloadBrowserSource":
-                option1 = res["source"]
+                option.append(res["source"])
             elif  str(res["request-type"]) == "TakeSourceScreenshot" or str(res["request-type"]) =="SetGainFilter" or str(res["request-type"]) =="EnableSourceFilter" or str(res["request-type"]) =="DisableSourceFilter" or str(res["request-type"]) =="ToggleSourceFilter":
-                option1 = res["sourceName"]
-
+                option.append(res["sourceName"])
             else:
-                option1 = res["transition-name"]
-                option1 = res["duration"]
-                option2 = res["filterName"]
-                option1 = res["offset"]
-                option1 = res["scale"]
-                option1 = res["item"]
-                option1 = res["url"]
-                option1 = res["visible"]
-                option1 = res["position"]
-                option1 = res["rotation"]
-                option1 = res["sc-name"]
-                option1= "error"
+                #option.append(res["transition-name"])
+                #option.append(res["duration"])
+                #option.append(res["filterName"])
+                #option.append(res["offset"])
+                #option.append(res["scale"])
+                #option.append(res["item"])
+                #option.append(res["url"])
+                #option.append(res["visible"])
+                #option.append(res["position"])
+                #option.append(res["rotation"])
+                #option.append(res["sc-name"])
+                option.append("error")
 
-            self.addRow(str(RowData["msg_type"]),str(RowData["msgNoC"]),str(RowData["input_type"]),str(res["request-type"]),str(RowData["deviceID"]),str(option1),str(option2))
+            self.addRow(str(RowData["msg_type"]),str(RowData["msgNoC"]),str(RowData["input_type"]),str(res["request-type"]),str(RowData["deviceID"]),*tuple(option))
 
         self.variable="foo"
         self.table()
-
+    def disableCombo(self, Combo):
+        Combo.setEnabled(False)
+    def enableCombo(self,Combo):
+        Combo.setEnabled(True)
     def add_msg_type_drop(self, msg):
         #logging.info("type " +str(msg))
 
@@ -596,7 +598,8 @@ class EditTable():
     def MakeTransitionsSelector(self):
         logging.info("Setting up transitions")
 
-    def setupOption1(self,action,*extra):
+    def setupoption1(self,action,*extra):
+
         #logging.info("Setting up Option 1")
             faderActions
             if action == "SetVolume":
@@ -632,30 +635,6 @@ class EditTable():
                logging.info("faderType")
             elif action == "SetMute":
                logging.info("faderType")
-            elif action == "StartStopStreaming":
-               logging.info("faderType")
-            elif action == "StartStreaming":
-               logging.info("faderType")
-            elif action == "StopStreaming":
-               logging.info("faderType")
-            elif action == "StartStopRecording":
-               logging.info("faderType")
-            elif action == "StartRecording":
-               logging.info("faderType")
-            elif action == "StopRecording":
-               logging.info("faderType")
-            elif action == "StartStopReplayBuffer":
-               logging.info("faderType")
-            elif action == "StartReplayBuffer":
-               logging.info("faderType")
-            elif action == "StopReplayBuffer":
-               logging.info("faderType")
-            elif action == "SaveReplayBuffer":
-               logging.info("faderType")
-            elif action == "PauseRecording":
-               logging.info("faderType")
-            elif action == "ResumeRecording":
-               logging.info("faderType")
             elif action == "SetTransitionDuration":
                logging.info("faderType")
             elif action == "SetCurrentProfile":
@@ -682,7 +661,13 @@ class EditTable():
 
 
 
-    def addRow(self, mtype, msgNoC, inputType, action, deviceID, option1, option2):
+
+    def setupOption2(self,action,*extra):
+        logging.info("Option 2")
+    def setupOption3(self,action,*extra):
+        logging.info("Option 3")
+
+    def addRow(self, mtype, msgNoC, inputType, action, deviceID, *option):
         form.list_action.insertRow(self.rowNumber)
 
         form.list_action.setItem(self.rowNumber,0,QtWidgets.QTableWidgetItem())
@@ -701,12 +686,15 @@ class EditTable():
         form.list_action.setItem(self.rowNumber,3,QtWidgets.QTableWidgetItem())
         form.list_action.setCellWidget(self.rowNumber,3, self.MakeInputDeviceList(deviceID))
 
-        form.list_action.setItem(self.rowNumber,5,QtWidgets.QTableWidgetItem())
-        form.list_action.setCellWidget(self.rowNumber,5, self.setupOption1(action, option1))
 
-        a=QtWidgets.QTableWidgetItem(option2)
+
+        a=QtWidgets.QTableWidgetItem(option[0])
         a.setTextAlignment(QtCore.Qt.AlignCenter)
         form.list_action.setItem(self.rowNumber,6,a)
+
+        if option:
+            form.list_action.setItem(self.rowNumber,5,QtWidgets.QTableWidgetItem())
+            form.list_action.setCellWidget(self.rowNumber,5, self.setupoption1(action, option[0]))
         self.rowNumber=+1
 
     @Slot(str, str,int)
@@ -714,13 +702,13 @@ class EditTable():
         form.list_action.insertRow(self.rowNumber)
 
         inputType=""
-        option1=""
+        option[0]=""
         if msg_type=="control_change":
             inputType="fader"
-            option1="SetVolume"
+            option[0]="SetVolume"
         elif msg_type == "note_on":
             inputType = "button"
-            option1="SetCurrentScene"
+            option[0]="SetCurrentScene"
         form.list_action.setItem(self.rowNumber,0,QtWidgets.QTableWidgetItem())
         form.list_action.setCellWidget(self.rowNumber,0, editTable.add_msg_type_drop(msg_type))
 
@@ -736,7 +724,7 @@ class EditTable():
         form.list_action.setCellWidget(self.rowNumber,3, self.MakeInputDeviceList(deviceID))
 
         form.list_action.setItem(self.rowNumber,5,QtWidgets.QTableWidgetItem())
-        form.list_action.setCellWidget(self.rowNumber,5, self.setupOption1(inputType, option1))
+        form.list_action.setCellWidget(self.rowNumber,5, self.setupoption[0](inputType, option[0]))
 
         form.list_action.setItem(self.rowNumber,6,QtWidgets.QTableWidgetItem(str(rowNumber)))
 
