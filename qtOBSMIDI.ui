@@ -9,8 +9,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1123</width>
-    <height>1023</height>
+    <width>1088</width>
+    <height>878</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -93,14 +93,20 @@
        <item>
         <widget class="QLabel" name="testlabel2">
          <property name="text">
-          <string>TextLabel</string>
+          <string/>
          </property>
         </widget>
        </item>
        <item>
-        <widget class="QLabel" name="testlabel">
+        <widget class="QPushButton" name="btn_test">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Fixed" vsizetype="MinimumExpanding">
+           <horstretch>0</horstretch>
+           <verstretch>0</verstretch>
+          </sizepolicy>
+         </property>
          <property name="text">
-          <string>TextLabel</string>
+          <string>Test</string>
          </property>
         </widget>
        </item>
@@ -1102,12 +1108,17 @@
          <string>Option 2</string>
         </property>
        </column>
+       <column>
+        <property name="text">
+         <string>Option 3</string>
+        </property>
+       </column>
       </widget>
      </item>
      <item row="0" column="0">
       <layout class="QHBoxLayout" name="horizontalLayout_5">
        <item>
-        <widget class="QPushButton" name="pushButton_2">
+        <widget class="QPushButton" name="btn_SaveTable">
          <property name="sizePolicy">
           <sizepolicy hsizetype="MinimumExpanding" vsizetype="MinimumExpanding">
            <horstretch>0</horstretch>
@@ -1127,7 +1138,7 @@
           </size>
          </property>
          <property name="text">
-          <string>Edit</string>
+          <string>Save</string>
          </property>
         </widget>
        </item>
@@ -1320,7 +1331,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>1123</width>
+     <width>1088</width>
      <height>21</height>
     </rect>
    </property>
