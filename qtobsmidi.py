@@ -19,7 +19,6 @@ import asyncio
 from websocket import WebSocketApp, create_connection
 import obswebsocket, obswebsocket.requests
 from obswebsocket import obsws, events, requests  # noqa: E402
-from functools import partial
 
 import tracemalloc
 
@@ -60,7 +59,9 @@ buttonActions = ["SetCurrentScene", "SetPreviewScene", "TransitionToProgram", "S
                  "StartStopStreaming", "StartStreaming", "StopStreaming", "StartStopRecording", "StartRecording", "StopRecording", "StartStopReplayBuffer",
                  "StartReplayBuffer", "StopReplayBuffer", "SaveReplayBuffer", "PauseRecording", "ResumeRecording", "SetTransitionDuration", "SetCurrentProfile","SetCurrentSceneCollection",
                  "ResetSceneItem", "SetTextGDIPlusText", "SetBrowserSourceURL", "ReloadBrowserSource", "TakeSourceScreenshot", "EnableSourceFilter", "DisableSourceFilter", "ToggleSourceFilter"]
+
 faderActions = ["SetVolume", "SetSyncOffset", "SetSourcePosition", "SetSourceRotation", "SetSourceScale", "SetTransitionDuration", "SetGainFilter"]
+
 jsonArchive = {"SetCurrentScene": """{"request-type": "SetCurrentScene", "message-id" : "1", "scene-name" : "%s"}""",
                "SetPreviewScene": """{"request-type": "SetPreviewScene", "message-id" : "1","scene-name" : "%s"}""",
                "TransitionToProgram": """{"request-type": "TransitionToProgram", "message-id" : "1"%s}""",
@@ -98,13 +99,55 @@ jsonArchive = {"SetCurrentScene": """{"request-type": "SetCurrentScene", "messag
                "PauseRecording": """{"request-type": "PauseRecording", "message-id" : "MIDItoOBS-PauseRecording"}""",
                "ResumeRecording": """{"request-type": "ResumeRecording", "message-id" : "MIDItoOBS-ResumeRecording"}""",
                "ToggleSourceFilter": """{"request-type": "SetSourceFilterVisibility", "sourceName": "%s", "filterName": "%s", "filterEnabled": %s, "message-id": "MIDItoOBS-EnableSourceFilter"}"""}
+
+actionList   = {"StartStopReplayBuffer":     [0],
+                "StartReplayBuffer":         [0],
+                "StopReplayBuffer":          [0],
+                "SaveReplayBuffer":          [0],
+                "SetTransitionDuration":     [0],                                 # <=duration
+                "StartStopStreaming":        [0],
+                "StartStreaming":            [0],
+                "StopStreaming":             [0],
+                "StartStopRecording":        [0],
+                "StartRecording":            [0],
+                "StopRecording":             [0],
+                "PauseRecording":            [0],
+                "ResumeRecording":           [0],
+                "TakeSourceScreenshot":      [1,  'source',                       "self.MakeSourceSelector(row, col, extra)"],                                                               # Source
+                "ToggleMute":                [1,  'source',                       "self.MakeSourceSelector(row, col, extra)"],                                                               # Source
+                "SetVolume":                 [1,  'source',                       "self.MakeVolumeSelector(row, col, extra)"],                                                               # source <-volume
+                "SetCurrentScene":           [1,  'scene-name',                   "self.MakeSceneSelector(row, col, extra)"],                                                         # Scene
+                "SetPreviewScene":           [1,  'scene-name',                   "self.MakeSceneSelector(row, col, extra)"],                                                         # Scene
+                "TransitionToProgram":       [1,  'scene-name',                   "self.MakeSceneSelector(row, col, extra)"],                                                         # Scene
+                "SetCurrentTransition":      [1,  'transition',                   "self.MakeTransitionSelector(row, col, extra)"],                                                    # Scenee1,   # Transition
+                "SetCurrentProfile":         [1,  'profile',                      "self.MakeProfileSelector(row, col, extra)"],                                                       # Profile
+                "SetCurrentSceneCollection": [1,  'sc-name',                      "self.MakeSceneCollectionSelector(row, col, extra)"],                                               # sc-name
+                "ResetSceneItem":            [1,  'item',                         "self.MakeItemSelector(row, col, extra)"],                                                          # Item
+                "SetMute":                   [2,  'source', 'bool',               "self.MakeVolumeSelector(row, col, extra)",                    "self.makeCheckbox(row,col)"],              # Source, bool
+                "SetSyncOffset":             [2,  'source', 'offset',             "self.MakeSourceSelector(row, col, extra)",                    "self.makeOffsetSelector(row,col)"],        # Source, Offset
+                "ReloadBrowserSource":       [2,  'source', 'url',                "self.MakeSourceSelector(row, col, extra)",                    "self.makeURLSelector(row,col)"    ],       # Source, URL
+                "EnableSourceFilter":        [2,  'source', 'filter',             "self.MakeSourceSelector(row, col, extra)",                    "self.makeFilterSelector(row,col)",],       # Source, Filter
+                "DisableSourceFilter":       [2,  'source', 'filter',             "self.MakeSourceSelector(row, col, extra)",                    "self.makeFilterSelector(row,col)",],       # Source, Filter
+                "SetTextGDIPlusText":        [2,  'source', 'text',               "self.MakeSourceSelector(row, col, extra)",                    "makeTextboxSelector(row,col)"],            # Source, Text
+                "SetBrowserSourceURL":       [2,  'source', 'url',                "self.MakeSourceSelector(row, col, extra)",                    "self.makeURLSelector(row,col)"],           # Source, URL
+                "SetSourceVisibility":       [2,  'item', 'bool',                 "self.MakeItemSelector(row, col, extra)",                      "self.MakeCheckbox(row,col)"],              # Item, Bool(visible)
+                "ToggleSourceVisibility":    [2,  'item', 'bool',                 "self.MakeItemSelector(row, col, extra)",                      "self.MakeCheckbox(row,col)"],              # Item, Bool(visible)
+                "SetSourceScale":            [3,  'source', 'item', 'scale',      "self.MakeSourceSelector(row, col, extra)",                    "self.MakeItemSelector(row, col, extra)",   "self.makeScaleSelector(row,col)"],      # Scene, Item, Scale
+                "SetSourcePosition":         [3,  'source', 'item', 'position',   "self.MakeSourceSelector(row, col, extra)",                    "self.MakeItemSelector(row, col, extra)",   "self.makePositionSelector(row,col)"],   # Scene, Item, Position
+                "SetSourceRotation":         [3,  'source', 'item', 'rotation',   "self.MakeSourceSelector(row, col, extra)",                    "self.MakeItemSelector(row, col, extra)",   "self.makeRotationSelector(row,col)"],   # Scene, Item, Rotation
+                "SetGainFilter":             [3,  'source', 'filter', 'db',       "self.MakeSourceSelector(row, col, extra)",                    "self.makeFilterSelector(row,col)",         "self.makeDBSelector(row,col)"],         # SOurce, Filter, Setting.DB
+                "ToggleSourceFilter":        [3,  'source', 'filter', 'bool',     "self.MakeSourceSelector(row, col, extra)",                    "self.makeFilterSelector(row,col)",         "self.makeCheckbox(row,col)"]            # Source, Filter, <-Bool
+}
 sceneListShort = []
 sceneListLong = []
+sourceListShort = []
+sourceListLong = []
 transitionList = []
 specialSourcesList = []
 profilesList = []
 sceneCollectionList = []
 gdisourcesList = []
+gainList=[]
 value = ""
 note = ""
 midiports = []
@@ -115,284 +158,13 @@ try:
     import thread
 except ImportError:
     import _thread as thread
-def ScriptExit(signal, frame):
-    logging.info("Closing midi ports...")
-    for port in midiports:
-        port["object"].close()
-    logging.info("Closing database...")
-    database.close()
-    logging.info("Exiting...")
-    sys.exit(0)
-
-
-
-
-
-
-
-def saveTODOButtonToFile(msg_type, msgNoC, input_type, action, request, target, field2, deviceID):
-    logging.info("Saved %s with note/control %s for action %s on device %s" % (msg_type, msgNoC, action, deviceID))
-    Search = Query()
-    result = db.search((Search.msg_type == msg_type) & (Search.msgNoC == msgNoC) & (Search.deviceID == deviceID))
-    if result:
-        db.remove((Search.msgNoC == msgNoC) & (Search.deviceID == deviceID))
-        db.insert({"msg_type": msg_type, "msgNoC": msgNoC, "input_type": input_type, "action" : action, "request": request, "target": target, "deviceID": deviceID, "field2": field2})
-    else:
-        db.insert({"msg_type": msg_type, "msgNoC": msgNoC, "input_type": input_type, "action" : action, "request": request, "target": target, "deviceID": deviceID, "field2": field2})
-
-def printArraySelect(array):
-    counter = 0
-    for line in array:
-        logging.info("%s: %s" % (counter, line))
-        counter += 1
-    if counter > 1:
-        return array[int(input("Select 0-%s: " % str(len(array)-1)))]
-    else:
-        return array[int(input("Select 0: "))]
-
-def askForInputScaling():
-    logging.info("Setup input scale")
-    low = int(input("Select lower output value: "))
-    high = int(input("Select higher output value: "))
-    return low, high
-
-def updateTransitionList():
-    form.box_transitions.clear()
-    counter = 0
-    global transitionList
-    ws = create_connection("ws://" + serverIP + ":" + serverPort)
-    #logging.info("\nUpdating transition list, plase wait")
-    ws.send("""{"request-type": "GetTransitionList", "message-id": "999999"}""")
-    result =  ws.recv()
-    jsn = json.loads(result)
-    transitionList = []
-    if jsn["message-id"] == "999999":
-        for item in jsn["transitions"]:
-            transitionList.append(item["name"])
-            form.box_transitions.insertItem(counter, str(item["name"]))
-            counter += 1
-
-        #logging.info("Transitions updated")
-    else:
-        logging.info("Failed to update Transition List")
-    ws.close()
-
-
-
-
-
-def updateProfileList():
-    form.box_profiles.clear()
-    counter = 0
-    global profilesList
-    ws = create_connection("ws://" + serverIP + ":" + serverPort)
-    #logging.info("Updating Profiles List, plase wait")
-    ws.send("""{"request-type": "ListProfiles", "message-id": "99999999"}""")
-    result =  ws.recv()
-    jsn = json.loads(result)
-    profilesList = []
-    if jsn["message-id"] == "99999999":
-        for line in jsn["profiles"]:
-            profilesList.append(line["profile-name"])
-            form.box_profiles.insertItem(counter, str(line["profile-name"]))
-            counter += 1
-        #logging.info("Profiles List updated")
-    else:
-        logging.info("Failed to update")
-
-    ws.close()
-
-def updatesceneCollectionList():
-    form.box_collections.clear()
-    counter = 0
-    global sceneCollectionList
-    ws = create_connection("ws://" + serverIP + ":" + serverPort)
-    #logging.info("\nUpdating Scene Collection List, plase wait")
-    ws.send("""{"request-type": "ListSceneCollections", "message-id": "99999999"}""")
-    result =  ws.recv()
-    jsn = json.loads(result)
-    sceneCollectionList = []
-    if jsn["message-id"] == "99999999":
-        for line in jsn["scene-collections"]:
-            sceneCollectionList.append(line["sc-name"])
-            form.box_collections.insertItem(counter, str(line["sc-name"]))
-            counter += 1
-
-        #logging.info("Scene Collection List updated")
-    else:
-        logging.info("Failed to update")
-    ws.close()
-
-
-
-
-
-
-def getSourceFilters(sourcename):
-    form.box_filtersFaders.clear()
-    counter = 0
-    ws = create_connection("ws://" + serverIP + ":" + serverPort)
-    #logging.info("\nChecking source filters, plase wait")
-    ws.send('{"request-type": "GetSourceFilters", "message-id": "MIDItoOBS-getSourceFilters", "sourceName": "' + sourcename + '"}')
-    result =  ws.recv()
-    ws.close()
-    jsn = json.loads(result)
-    if jsn["message-id"] == "MIDItoOBS-getSourceFilters":
-        form.box_filtersFaders.insertItem(counter, str(jsn["filters"]))
-        #logging.info(str(jsn["filters"]))
-
-        counter += 1
-        return jsn["filters"]
-    else:
-        return False
-
-
-
-
-def configureDevices(switch):
-    dbresult = devdb.all()
-    if switch:
-        logging.info("\nTell me: What do you want to do?\n1: Rename a device and transfer their action assignments (because you plugged it into another USB port and windows decided to give the device a new name now)\n2: Delete all devices from config and re-add (Warning: this will dereference all button and fader actions(so they will no longer work). This might cause device confusion later.\n3: Remove a single device from the configuration INCLUDING their midi assignments\n4: Add new device\n5: Skip device configuration (Warning: If no device has been configured before, MIDItoOBS will NOT work)")
-        action_select = int(input("Select 1-4: "))
-        if action_select == 1:
-            renameDevice()
-            return
-        elif action_select == 2:
-            logging.info("Removing all devices from the database....")
-            devdb.purge() #purge database table before adding new devices
-        elif action_select == 3:
-            removeDevice()
-            return
-        elif action_select == 4:
-            pass
-        else:
-            return
-
-    logging.info("\nWhich device do you want to add?")
-    exitflag = 0
-    while not exitflag:
-        availableDeviceList = mido.get_input_names()
-        deviceList = []
-        counter = 0
-        inUseDeviceList = devdb.all()
-        for device in availableDeviceList:
-            if devInDB(device, inUseDeviceList):
-                pass
-            else:
-                logging.info("%s: %s" % (counter, device))
-                counter += 1
-                deviceList.append(device)
-
-        if len(deviceList) == 0:
-            logging.info("No midi input device available")
-            return
-        if len(deviceList) < 2:
-            input_select = int(input("Select 0: "))
-        else:
-            input_select = int(input("Select 0-%s: " % str(len(deviceList)-1)))
-        logging.info("Adding:", deviceList[input_select])
-        result = devdb.search(Query().devicename == deviceList[input_select])
-        if not result:
-            deviceID = devdb.insert({"devicename": deviceList[input_select]})
-        logging.info("Do you want to add another device?\n1: Yes\n2: No")
-        action_select = int(input("Select 1 or 2: "))
-        if action_select == 2:
-            exitflag = 1
-
-def devInDB(devicename, devicedatabase):
-    for entry in devicedatabase:
-        if entry["devicename"] == devicename:
-            return True
-    return False
-
-def removeDevice():
-    devices = devdb.all()
-    logging.info("So you want to remove a device. Please keep in mind that this will not only remove the device but remove every action assigned to the device.\nWhich device and configuration do you want to remove?")
-    counter = 0
-    for (index, device) in enumerate(devices):
-        logging.info("%s: %s" % (counter, device["devicename"]))
-        counter += 1
-    device_select = int(input("Select 0-%s: " % str(len(devices)-1)))
-    logging.info("Selected:", devices[device_select]["devicename"])
-    yousure = input("Are you really sure you want to remove the devices and all it's assignments?\nType 'YES' and press enter: ")
-    if yousure == "YES":
-        logging.info("As you wish. Deleting now......")
-        try:
-            result = devdb.get(Query().devicename == devices[device_select]["devicename"])
-            devdb.remove(doc_ids=[result.doc_id])
-            db.remove(Query().deviceID == result.doc_id)
-        except:
-            logging.info("There was an error removing the device")
-
-
-def renameDevice():
-    devices = devdb.all()
-    counter = 0
-    logging.info("Please select a device for your configuration that you want to \"rename\" to another device:")
-    for (index, device) in enumerate(devices):
-        logging.info("%s: %s" % (counter, device["devicename"]))
-        counter += 1
-    old_device_select = int(input("Select 0-%s: " % str(len(devices)-1)))
-    old_device_name = devices[old_device_select]["devicename"]
-    logging.info("Selected:", old_device_name)
-    logging.info("Please select the new device name now:")
-    availableDeviceList = mido.get_input_names()
-    deviceList = []
-    for device in availableDeviceList:
-            if devInDB(device, devices):
-                pass
-            else:
-                deviceList.append(device)
-    if len(deviceList) > 0:
-        counter = 0
-        for (index, device) in enumerate(deviceList):
-            logging.info("%s: %s" % (counter, device))
-            counter += 1
-        new_device_select = int(input("Select 0-%s: " % str(len(deviceList)-1)))
-        new_device_name = deviceList[new_device_select]
-        logging.info("Selected:", new_device_name, "as the new device name")
-        logging.info("Updating \"", old_device_name, "\" to \"", new_device_name, "\" now", sep="")
-        try:
-            devdb.update({"devicename": new_device_name}, Query().devicename == old_device_name)
-            logging.info("Sucessfully renamed the device")
-        except:
-            logging.info("There was an error renaming the device")
-    else:
-        logging.info("There is no other device available to switch over to. Aborting...")
-
-def getDevices():
-    availableinDeviceList = mido.get_input_names()
-    deviceList = []
-    inUseDeviceList = devdb.all()
-    for device in availableinDeviceList:
-        logging.info(device)
-        if devInDB(device, inUseDeviceList):
-            pass
-        deviceList.append(device)
-
-
-
-
-
-
-
-def entryExists(value):
-    x=form.list_action.findItems(str(value), QtCore.Qt.MatchExactly | QtCore.Qt.MatchRecursive)
-    if x!=[]:
-        return True
-    else:
-        return False
-
-    #used for connecting Midi to obs for actually controlling OBS
-
-
 class handler(QtCore.QObject):
     closed=pyqtSignal()
     SendMessage=pyqtSignal(str,str,name="SendMessage")
     def handle(self,message):
-        #logging.info(str(message))
+        #logging.debug(str(message))
 
-        #logging.info(message.type)
+        #logging.debug(message.type)
 
         if message.type == "note_on":
             if  entryExists(message.note)!=True:
@@ -407,13 +179,13 @@ class handler(QtCore.QObject):
 
         for device in devices: #gave up on documentation here
             try:
-                #logging.info("device name "+device["devicename"])
+                #logging.debug("device name "+device["devicename"])
                 tempmidiport = mido.open_input(device["devicename"],callback=midi.handle)
                 tempobj = {"id": device.doc_id, "object": tempmidiport, "devicename": device["devicename"]}
                 midiports.append(tempobj)
-                #logging.info("successfully opened" + str(device["devicename"]))
+                #logging.debug("successfully opened" + str(device["devicename"]))
             except:
-                logging.info("\nCould not open", str(device["devicename"]))
+                logging.debug("\nCould not open", str(device["devicename"]))
                 #QtWidgets.QMessageBox.Critical(self, "Could not open", "The midi device might be used by another application/not plugged in/have a different name.")
                 database.close()
                 #sys.exit(5)
@@ -427,349 +199,35 @@ class EditTable():
         self.rowNumber=rowNumber
         for rowNumbers, RowData in enumerate (result):
             res = ast.literal_eval(RowData["action"])
-            #logging.info(res["request-type"])
-            #m_pTableWidget->setItem(0, 1, new QTableWidgetItem("Hello"));
-            #editTable.add(EditTable, rowNumber,RowData, colum_number, data);
-            option=[]
-
-            if str(res["request-type"]) == "SetCurrentScene" or str(res["request-type"]) == "SetPreviewScene" or str(res["request-type"]) == "SetSourcePosition" or str(res["request-type"]) == "SetSourceRotation" or str(res["request-type"]) == "SetSourcescale":
-                option.append(res["scene-name"])
-            elif str(res["request-type"]) == "SetVolume" or str(res["request-type"]) == "ToggleMute" or str(res["request-type"]) == "SetMute"or str(res["request-type"]) == "SetSyncOffset" or str(res["request-type"]) == "SetTextGDIPlusText" or str(res["request-type"]) == "SetBrowserSourceURL" or str(res["request-type"]) == "ReloadBrowserSource":
-                option.append(res["source"])
-            elif  str(res["request-type"]) == "TakeSourceScreenshot" or str(res["request-type"]) =="SetGainFilter" or str(res["request-type"]) =="EnableSourceFilter" or str(res["request-type"]) =="DisableSourceFilter" or str(res["request-type"]) =="ToggleSourceFilter":
-                option.append(res["sourceName"])
-            else:
-                #option.append(res["transition-name"])
-                #option.append(res["duration"])
-                #option.append(res["filterName"])
-                #option.append(res["offset"])
-                #option.append(res["scale"])
-                #option.append(res["item"])
-                #option.append(res["url"])
-                #option.append(res["visible"])
-                #option.append(res["position"])
-                #option.append(res["rotation"])
-                #option.append(res["sc-name"])
-                option.append("error")
-
-            self.addRow(str(RowData["msg_type"]),str(RowData["msgNoC"]),str(RowData["input_type"]),str(res["request-type"]),str(RowData["deviceID"]),*tuple(option))
-
-        self.variable="foo"
+            x=actionList[res["request-type"]]
+            option="".join(res[x[x[0]]])
+            self.addRow(str(RowData["msg_type"]),str(RowData["msgNoC"]),str(RowData["input_type"]),str(res["request-type"]),str(RowData["deviceID"]),option)
         self.table()
+
+    def UpdateSourceList(self):
+        logging.info("updateSourceList")
+    def UpdateSceneList(self):
+        logging.info("updateSourceList")
+    def UpdateFilterList(self):
+        logging.info("updateSourceList")
+    def UpdateItemList(self):
+        logging.info("updateSourceList")
+    def UpdateTransitionList(self):
+        logging.info("updateSourceList")
+    def UpdateProfileList(self):
+        logging.info("updateSourceList")
+
+
     def disableCombo(self, Combo):
         Combo.setEnabled(False)
         return Combo
 
     def enableCombo(self,Combo):
         Combo.setEnabled(True)
-    def newFaderSetup(self,action, NoC, msgType, deviceID, source, scale, *options):
-        #source, scale deviceID
-        deviceID=deviceID+1
-        if action == "SetVolume":
-             # pull from dropdown
-            scale = (0,2)
-            action = jsonArchive["SetVolume"] % (source, "%s")
-            self.saveFaderToFile(msgType, NoC, "fader" , action, scale, "SetVolume", deviceID)
-        elif action == "SetSyncOffset":
-            source = "" #Pull from dropdown printArraySelect(tempSceneList)
-            scale = options[1] #askForInputScaling()
-            action = jsonArchive["SetSyncOffset"] % (source, "%s")
-            self.saveFaderToFile(msgType, NoC, "fader" , action, scale, "SetSyncOffset", deviceID)
-        elif action == "SetGainFilter":
-            source = "" #Pull From Dropdown printArraySelect(tempSceneList)
-            filtername = self.checkIfSourceHasGainFilter(source)
-            if filtername:
-                scale = (-30,30) #askForInputScaling()
-                action = jsonArchive["SetGainFilter"] % (source, filtername, "%s")
-                self.saveFaderToFile(msgType, NoC, "fader" , action, scale, "SetGainFilter", deviceID)
-            else:
-                logging.info("The selected source has no gain filter. Please add it in the source filter dialog and try again.")
-                #Setup Alertbox
-
-    def setupButtonEvents(self, action, NoC, msgType, deviceID):
-        deviceID=deviceID+1
-        print()
-        print("You selected: %s" % action)
-        if action == "SetCurrentScene":
-            updateSceneList()
-            scene = printArraySelect(sceneListShort)
-            action = jsonArchive["SetCurrentScene"] % scene
-            self.saveButtonToFile(msgType, NoC, "button" , action, deviceID)
-        elif action == "SetPreviewScene":
-            updateSceneList()
-            scene = printArraySelect(sceneListShort)
-            action = jsonArchive["SetPreviewScene"] % scene
-            self.saveButtonToFile(msgType, NoC, "button" , action, deviceID)
-        elif action == "TransitionToProgram":
-            updateTransitionList()
-            print("Please select a transition to be used:")
-            transitionList.append("--Current--")
-            transition = printArraySelect(transitionList)
-            print(transition)
-            if transition != "--Current--":
-                tmp = ' , "with-transition": {"name": "' + transition + '"}'
-                action = jsonArchive["TransitionToProgram"] % tmp
-            else:
-                action = jsonArchive["TransitionToProgram"] % ""
-            self.saveButtonToFile(msgType, NoC, "button" , action, deviceID)
-        elif action == "SetCurrentTransition":
-            updateTransitionList()
-            transition = printArraySelect(transitionList)
-            action = jsonArchive["SetCurrentTransition"] % transition
-            self.saveButtonToFile(msgType, NoC, "button" , action, deviceID)
-        elif action == "StartStopStreaming":
-            action = jsonArchive["StartStopStreaming"]
-            self.saveButtonToFile(msgType, NoC, "button" , action, deviceID)
-        elif action == "StartStreaming":
-            action = jsonArchive["StartStreaming"]
-            self.saveButtonToFile(msgType, NoC, "button" , action, deviceID)
-        elif action == "StopStreaming":
-            action = jsonArchive["StopStreaming"]
-            self.saveButtonToFile(msgType, NoC, "button" , action, deviceID)
-        elif action == "StartStopRecording":
-            action = jsonArchive["StartStopRecording"]
-            self.saveButtonToFile(msgType, NoC, "button" , action, deviceID)
-        elif action == "StartRecording":
-            action = jsonArchive["StartRecording"]
-            self.saveButtonToFile(msgType, NoC, "button" , action, deviceID)
-        elif action == "StopRecording":
-            action = jsonArchive["StopRecording"]
-            self.saveButtonToFile(msgType, NoC, "button" , action, deviceID)
-        elif action == "StartStopReplayBuffer":
-            action = jsonArchive["StartStopReplayBuffer"]
-            self.saveButtonToFile(msgType, NoC, "button" , action, deviceID)
-        elif action == "StartReplayBuffer":
-            action = jsonArchive["StartReplayBuffer"]
-            self.saveButtonToFile(msgType, NoC, "button" , action, deviceID)
-        elif action == "StopReplayBuffer":
-            action = jsonArchive["StopReplayBuffer"]
-            self.saveButtonToFile(msgType, NoC, "button" , action, deviceID)
-        elif action == "SaveReplayBuffer":
-            action = jsonArchive["SaveReplayBuffer"]
-            self.saveButtonToFile(msgType, NoC, "button" , action, deviceID)
-        elif action == "PauseRecording":
-            action = jsonArchive["PauseRecording"]
-            self.saveButtonToFile(msgType, NoC, "button" , action, deviceID)
-        elif action == "ResumeRecording":
-            action = jsonArchive["ResumeRecording"]
-            self.saveButtonToFile(msgType, NoC, "button" , action, deviceID)
-        elif action == "SetSourceVisibility":
-            updateSceneList()
-            tempSceneList = []
-            for scene in sceneListLong:
-                for line in scene["sources"]:
-                    if line["name"] not in tempSceneList:
-                        tempSceneList.append(line["name"])
-            source = printArraySelect(tempSceneList)
-            renderArray = ["0 (Invisible)", "1 (Visible)"]
-            render = printArraySelect(renderArray)
-            if render == "0 (Invisible)":
-                render = "false"
-            else:
-                render = "true"
-            sceneListShort.append("--Current--")
-            scene = printArraySelect(sceneListShort)
-            if scene != "--Current--":
-                source = source + '", "scene-name": "' + scene
-            action = jsonArchive["SetSourceVisibility"] % (source, str(render))
-            self.saveButtonToFile(msgType, NoC, "button" , action, deviceID)
-        elif action == "ToggleSourceVisibility":
-            updateSceneList()
-            tempSceneList = []
-            for scene in sceneListLong:
-                for line in scene["sources"]:
-                    if line["name"] not in tempSceneList:
-                        tempSceneList.append(line["name"])
-            source = source1 = printArraySelect(tempSceneList)
-            sceneListShort.append("--Current--")
-            scene = printArraySelect(sceneListShort)
-            if scene != "--Current--":
-                source = source + '", "scene": "' + scene
-            action = jsonArchive["ToggleSourceVisibility"] % (source, "%s")
-            saveTODOButtonToFile(msgType, NoC, "button" , action, "ToggleSourceVisibility", source1, "" , deviceID)
-        elif action == "ToggleMute":
-            updateSceneList()
-            updateSpecialSources()
-            tempSceneList = []
-            for scene in sceneListLong:
-                for line in scene["sources"]:
-                    if line["name"] not in tempSceneList:
-                        tempSceneList.append(line["name"])
-            for item in specialSourcesList:
-                tempSceneList.append(item)
-            source = printArraySelect(tempSceneList)
-            action = jsonArchive["ToggleMute"] % source
-            self.saveButtonToFile(msgType, NoC, "button" , action, deviceID)
-        elif action == "SetMute":
-            updateSceneList()
-            updateSpecialSources()
-            tempSceneList = []
-            for scene in sceneListLong:
-                for line in scene["sources"]:
-                    if line["name"] not in tempSceneList:
-                        tempSceneList.append(line["name"])
-            for item in specialSourcesList:
-                tempSceneList.append(item)
-            source = printArraySelect(tempSceneList)
-            tempArray = ["0 (Muted)", "1 (Unmuted)"]
-            muted = printArraySelect(tempArray)
-            if muted == "0 (Muted)":
-                muted = "true"
-            else:
-                muted = "false"
-            action = jsonArchive["SetMute"] % (source, muted)
-            self.saveButtonToFile(msgType, NoC, "button" , action, deviceID)
-        elif action == "SetTransitionDuration":
-            time = int(input("Input the desired time(in milliseconds): "))
-            action = jsonArchive["SetTransitionDuration"] % time
-            self.saveButtonToFile(msgType, NoC, "button" , action, deviceID)
-        elif action == "SetCurrentProfile":
-            updateProfileList()
-            profilename = printArraySelect(profilesList)
-            action = jsonArchive["SetCurrentProfile"] % profilename
-            self.saveButtonToFile(msgType, NoC, "button" , action, deviceID)
-        elif action == "SetRecordingFolder":
-            recpath = str(input("Input the desired path: "))
-            action = jsonArchive["SetRecordingFolder"] % recpath
-            self.saveButtonToFile(msgType, NoC, "button" , action, deviceID)
-        elif action == "SetCurrentSceneCollection":
-            updatesceneCollectionList()
-            scenecollection = printArraySelect(sceneCollectionList)
-            action = jsonArchive["SetCurrentSceneCollection"] % scenecollection
-            self.saveButtonToFile(msgType, NoC, "button" , action, deviceID)
-        elif action == "ResetSceneItem":
-            updateSceneList()
-            tempSceneList = []
-            for scene in sceneListLong:
-                for line in scene["sources"]:
-                    if line["name"] not in tempSceneList:
-                        tempSceneList.append(line["name"])
-            source = printArraySelect(tempSceneList)
-            sceneListShort.append("--Current--")
-            scene = printArraySelect(sceneListShort)
-            if scene != "--Current--":
-                render = '"' + str(source) + '", "scene-name": "' + scene + '"'
-            else:
-                render = '"' + str(source) + '"'
-            action = jsonArchive["ResetSceneItem"] % (render)
-            self.saveButtonToFile(msgType, NoC, "button" , action, deviceID)
-        elif action == "SetTextGDIPlusText":
-            updateSceneList()
-            tempSceneList = []
-            for scene in sceneListLong:
-                for line in scene["sources"]:
-                    if line["name"] not in tempSceneList and line["type"] == "text_gdiplus":
-                        tempSceneList.append(line["name"])
-            source = printArraySelect(tempSceneList)
-            text = str(input("Input the desired text: "))
-            action = jsonArchive["SetTextGDIPlusText"] % (source, text)
-            self.saveButtonToFile(msgType, NoC, "button" , action, deviceID)
-        elif action == "SetBrowserSourceURL":
-            updateSceneList()
-            tempSceneList = []
-            for scene in sceneListLong:
-                for line in scene["sources"]:
-                    if line["name"] not in tempSceneList and line["type"] == "browser_source":
-                        tempSceneList.append(line["name"])
-            source = printArraySelect(tempSceneList)
-            url = str(input("Input the desired URL: "))
-            action = jsonArchive["SetBrowserSourceURL"] % (source, url)
-            self.saveButtonToFile(msgType, NoC, "button" , action, deviceID)
-        elif action == "ReloadBrowserSource":
-            updateSceneList()
-            tempSceneList = []
-            for scene in sceneListLong:
-                for line in scene["sources"]:
-                    if line["name"] not in tempSceneList and line["type"] == "browser_source":
-                        tempSceneList.append(line["name"])
-            source = printArraySelect(tempSceneList)
-            action = jsonArchive["ReloadBrowserSource"] % (source, "%s")
-            saveTODOButtonToFile(msgType, NoC, "button" , action, "ReloadBrowserSource", source, "", deviceID)
-        elif action == "TakeSourceScreenshot":
-            updateSceneList()
-            tempSceneList = []
-            for scene in sceneListLong:
-                for line in scene["sources"]:
-                    if line["name"] not in tempSceneList:
-                        tempSceneList.append(line["name"])
-            for scene in sceneListShort:
-                tempSceneList.append(scene)
-            source = printArraySelect(tempSceneList)
-            action = jsonArchive["TakeSourceScreenshot"] % (source)
-            self.saveButtonToFile(msgType, NoC, "button" , action, deviceID)
-        elif action == "EnableSourceFilter":
-            updateSceneList()
-            updateSpecialSources()
-            tempSceneList = []
-            for scene in sceneListLong:
-                for line in scene["sources"]:
-                    if line["name"] not in tempSceneList:
-                        tempSceneList.append(line["name"])
-            for item in specialSourcesList:
-                tempSceneList.append(item)
-            source = printArraySelect(tempSceneList)
-            filters = getSourceFilters(source)
-            if filters:
-                tempFilterList = []
-                for line in filters:
-                    tempFilterList.append(line["name"])
-                selectedFilter = printArraySelect(tempFilterList)
-                action = jsonArchive["EnableSourceFilter"] % (source, selectedFilter)
-                self.saveButtonToFile(msgType, NoC, "button" , action, deviceID)
-            else:
-                print("\nThis source has no filters")
-        elif action == "DisableSourceFilter":
-            updateSceneList()
-            updateSpecialSources()
-            tempSceneList = []
-            for scene in sceneListLong:
-                for line in scene["sources"]:
-                    if line["name"] not in tempSceneList:
-                        tempSceneList.append(line["name"])
-            for item in specialSourcesList:
-                tempSceneList.append(item)
-            source = printArraySelect(tempSceneList)
-            filters = getSourceFilters(source)
-            if filters:
-                tempFilterList = []
-                for line in filters:
-                    tempFilterList.append(line["name"])
-                selectedFilter = printArraySelect(tempFilterList)
-                action = jsonArchive["DisableSourceFilter"] % (source, selectedFilter)
-                self.saveButtonToFile(msgType, NoC, "button" , action, deviceID)
-            else:
-                print("\nThis source has no filters")
-        elif action == "ToggleSourceFilter":
-            updateSceneList()
-            updateSpecialSources()
-            tempSceneList = []
-            for scene in sceneListLong:
-                for line in scene["sources"]:
-                    if line["name"] not in tempSceneList:
-                        tempSceneList.append(line["name"])
-            for item in specialSourcesList:
-                tempSceneList.append(item)
-            source = printArraySelect(tempSceneList)
-            filters = getSourceFilters(source)
-            if filters:
-                tempFilterList = []
-                for line in filters:
-                    tempFilterList.append(line["name"])
-                selectedFilter = printArraySelect(tempFilterList)
-            action = jsonArchive["ToggleSourceFilter"] % (source, selectedFilter, "%s")
-            saveTODOButtonToFile(msgType, NoC, "button" , action, "ToggleSourceFilter", source, selectedFilter, deviceID)
-
-    def add_msg_type_drop(self, msg):
-        drop_msg_type=QtWidgets.QComboBox()
-        drop_msg_type.insertItems(0, ["control_change", "program_change", "note_on"])
-
-        x=drop_msg_type.findText(msg, QtCore.Qt.MatchExactly | QtCore.Qt.MatchRecursive)
-        drop_msg_type.setCurrentIndex(x)
-        return drop_msg_type
     def saveTable(self, *options):
-        logging.info(options)
+        logging.debug(options)
         #This function iterates through table, and switches between Sending SaveFaderToFile and saveButtonToFile based on inputType
-        logging.info("Save Table")
+        logging.debug("Save Table")
         table=form.list_action
         rowcount=table.rowCount()
         irow=0
@@ -799,17 +257,17 @@ class EditTable():
 
             except:
                 arg=0
-                logging.info("no values")
+                logging.debug("no values")
 
-            logging.info(str(irow)+ ": "+str(msg_type))
-            logging.info(arg)
+            logging.debug(str(irow)+ ": "+str(msg_type))
+            logging.debug(arg)
 
-            #logging.info(str(irow)+ ": "+str(msgNoC))
-            #logging.info(str(irow)+ ": "+str(input_type))
-            #logging.info(str(irow)+ ": "+str(action))
-            #logging.info(str(irow)+ ": "+str(scale))
-            #logging.info(str(irow)+ ": "+str(cmd))
-            #logging.info(str(irow)+ ": "+str(deviceID))
+            #logging.debug(str(irow)+ ": "+str(msgNoC))
+            #logging.debug(str(irow)+ ": "+str(input_type))
+            #logging.debug(str(irow)+ ": "+str(action))
+            #logging.debug(str(irow)+ ": "+str(scale))
+            #logging.debug(str(irow)+ ": "+str(cmd))
+            #logging.debug(str(irow)+ ": "+str(deviceID))
             irow+=1
 
                 #set save variables
@@ -825,7 +283,7 @@ class EditTable():
             #move to next row
 
     def saveFaderToFile(self, msg_type, msgNoC, input_type, action, scale, cmd, deviceID ):
-        logging.info("Saved %s with control %s for action %s on device %s" % (msg_type, msgNoC, cmd, deviceID))
+        logging.debug("Saved %s with control %s for action %s on device %s" % (msg_type, msgNoC, cmd, deviceID))
         Search = Query()
         result = db.search((Search.msg_type == msg_type) & (Search.msgNoC == msgNoC) & (Search.deviceID == deviceID))
         if result:
@@ -836,7 +294,7 @@ class EditTable():
 
     def saveButtonToFile(self, msg_type, msgNoC, input_type, action, deviceID):
         # note_on, 20, button, action, deviceID
-        logging.info("Saved %s with note/control %s for action %s on device %s" % (msg_type, msgNoC, action, deviceID))
+        logging.debug("Saved %s with note/control %s for action %s on device %s" % (msg_type, msgNoC, action, deviceID))
         Search = Query()
         result = db.search((Search.msg_type == msg_type) & (Search.msgNoC == msgNoC) & (Search.deviceID == deviceID))
         if result:
@@ -849,58 +307,83 @@ class EditTable():
         x=0
 
         drop_msg_type=QtWidgets.QComboBox()
-
         drop_msg_type.insertItems(0, ["button", "fader"])
-
         x=drop_msg_type.findText(msg, QtCore.Qt.MatchExactly | QtCore.Qt.MatchRecursive)
         drop_msg_type.setCurrentIndex(x)
-
-
-
+        drop_msg_type.currentIndexChanged.connect(self.updateAction)
         return drop_msg_type
 
 
     def table(self):
         self.tableWidget = form.list_action
 
-
-
+    #Make Combo Box Widget Functions
+    def MakeMsgTypeSelector(self, msg):
+        drop_msg_type=QtWidgets.QComboBox()
+        drop_msg_type.insertItems(0, ["control_change", "program_change", "note_on"])
+        x=drop_msg_type.findText(msg, QtCore.Qt.MatchExactly | QtCore.Qt.MatchRecursive)
+        drop_msg_type.setCurrentIndex(x)
+        return drop_msg_type
     def MakeActionSelector(self, type, *action):
-        #logging.info("Setting up actions")
+        #logging.debug("Setting up actions")
         drop_msg_type=QtWidgets.QComboBox()
         counter=0
-
         if type == "button":
             for each in buttonActions:
                 drop_msg_type.addItem(str(each))
                 counter+=1
-
-
         elif type== "fader":
             for each in faderActions:
                 drop_msg_type.addItem(str(each))
                 counter+=1
         if action:
-
-
             x=drop_msg_type.findText(action[0], QtCore.Qt.MatchExactly | QtCore.Qt.MatchRecursive)
             drop_msg_type.setCurrentIndex(x)
-
         drop_msg_type.currentIndexChanged.connect(self.updateAction)
-
         return drop_msg_type
 
-    def MakeSceneSelector(self,*existing):
+    def MakeSceneSelector(self,row, col=5,*existing):
+
         sceneCombo=QtWidgets.QComboBox()
         for scene in sceneListShort:
-            #logging.info(line)
             sceneCombo.addItem(scene)
-            #logging.info(scene)
         if existing:
-            #logging.info(existing[0])
+            a=str(existing[0][0])
+            logging.info(a)
+            x=sceneCombo.findText(a, QtCore.Qt.MatchStartsWith | QtCore.Qt.MatchRecursive)
+            sceneCombo.setCurrentIndex(x)
+
+        sceneCombo.setCurrentIndex(0)
+        sceneCombo.currentIndexChanged.connect(self.updateAction)
+        form.list_action.setItem(row,col,QtWidgets.QTableWidgetItem())
+        form.list_action.setCellWidget(row,col,sceneCombo)
+        return sceneCombo
+    def MakeSourceSelector(self, row, col=5, *existing):
+        sceneCombo=QtWidgets.QComboBox()
+        for source in sourceListShort:
+            #logging.debug(line)
+            sceneCombo.addItem(source)
+            #logging.debug(scene)
+
+        sceneCombo.currentIndexChanged.connect(self.updateAction)
+        form.list_action.setItem(row,col,QtWidgets.QTableWidgetItem())
+        form.list_action.setCellWidget(row,col,sceneCombo)
+    def MakeBrowserSourceSelector(self, row, col, *existing):
+        sceneCombo=QtWidgets.QComboBox()
+        for source in sourceListShort:
+            #logging.debug(line)
+            sceneCombo.addItem(source)
+            #logging.debug(scene)
+        if existing:
+            logging.info("existing = "+ existing[0])
             x=sceneCombo.findText(existing[0], QtCore.Qt.MatchStartsWith | QtCore.Qt.MatchRecursive)
             sceneCombo.setCurrentIndex(x)
-        return sceneCombo
+
+        sceneCombo.currentIndexChanged.connect(self.updateAction)
+        form.list_action.setItem(row,col,QtWidgets.QTableWidgetItem())
+        form.list_action.setCellWidget(row,col,sceneCombo)
+
+
 
 
     def MakeInputDeviceList(self,*existing):
@@ -919,128 +402,55 @@ class EditTable():
         if existing:
             deviceCombo.setCurrentIndex(int(existing[0])-1)
         return deviceCombo
-    def GetCurrentScene(self):
-        ws = create_connection("ws://" + serverIP + ":" + serverPort)
-        ws.send('{"request-type": "GetCurrentScene","message-id": "MIDItoOBS-checksourcegainfilter"}')
-        result =  ws.recv()
-        ws.close()
-        jsn = json.loads(result)
-        return str(jsn["name"])
-
-    def MakeVolumeSelector(self,*existing):
+    def MakeVolumeSelector(self, row, col=5, *existing):
         volumeCombo=QtWidgets.QComboBox()
-
         for item in specialSourcesList:
-            #logging.info(each)
             volumeCombo.addItem(str(item))
-            #add code here for generating a dropdown
-            volumeCombo.currentIndexChanged.connect(self.updateAction)
-            volumeCombo.setCurrentIndex(1)
-
         if existing:
-            x=volumeCombo.findText(existing[0], QtCore.Qt.MatchContains | QtCore.Qt.MatchRecursive)
+            x=volumeCombo.findText(str(existing[0]), QtCore.Qt.MatchContains | QtCore.Qt.MatchRecursive)
             volumeCombo.setCurrentIndex(x)
+        volumeCombo.setCurrentIndex(0)
+        volumeCombo.currentIndexChanged.connect(self.updateAction)
+        form.list_action.setItem(row,col,QtWidgets.QTableWidgetItem())
+        form.list_action.setCellWidget(row,col,volumeCombo)
 
-        else:
-            volumeCombo.setCurrentIndex(0)
-        return volumeCombo
-    @Slot(int)
-    def updateAction(self):
-        x=form.list_action.selectedItems()
-        row=0
-        text=""
-        for each in x:
 
-            row=each.row()
-            col=each.column()
-            text=form.list_action.cellWidget(row, col).currentText()
-            logging.info(row)
-            if col==2:
-                form.list_action.setItem(row,4,QtWidgets.QTableWidgetItem())
-                form.list_action.setCellWidget(row,4, self.MakeActionSelector(text))
-            elif col ==4:
-                action=form.list_action.cellWidget(row, 4).currentText()
-                form.list_action.setItem(row,5,QtWidgets.QTableWidgetItem())
-                form.list_action.setCurrentCell(row, 5)
-                form.list_action.setCellWidget(row,5, self.setupoption1(action))
+    def MakeProfileSelector(self,*existing):
+        logging.debug("Setting up profiles")
+
+    def MakeTransitionsSelector(self,*existing):
+        logging.debug("Setting up transitions")
 
 
 
 
-    def MakeProfileSelector(self):
-        logging.info("Setting up profiles")
+    def MakeCheckbox(self, row, col=6, *existing):
+        logging.info("make checkbox")
 
-    def MakeTransitionsSelector(self):
-        logging.info("Setting up transitions")
+    def SetupOptions(self,action,row, col, extra="None"):
+        #Grab Action List)
 
-    def setupoption1(self,action,*extra):
-        #logging.info("Setting up Option 1")
-        logging.info(action)
-        if action == "SetVolume":
-            return self.MakeVolumeSelector(*extra)
-            #logging.info("faderType")
-        elif action == "SetSyncOffset":
-            logging.info("faderType")
-        elif action == "SetSourcePosition":
-            logging.info("faderType")
-        elif action == "SetSourceRotation":
-            logging.info("faderType")
-        elif action == "SetSourceScale":
-            logging.info("faderType")
-        elif action == "SetTransitionDuration":
-            logging.info("faderType")
-        elif action == "SetGainFilter":
-            logging.info("faderType")
-        #buttonActions
-        elif action == "SetCurrentScene":
-            return self.MakeSceneSelector(*extra)
-        elif action == "SetPreviewScene":
-            logging.info("set preview scene "+ extra[0])
-            return self.MakeSceneSelector(*extra)
-        elif action == "TransitionToProgram":
-           logging.info("faderType")
-        elif action == "SetCurrentTransition":
-           logging.info("faderType")
-        elif action == "SetSourceVisibility":
-           logging.info("faderType")
-        elif action == "ToggleSourceVisibility":
-           logging.info("faderType")
-        elif action == "ToggleMute":
-           logging.info("faderType")
-        elif action == "SetMute":
-           logging.info("faderType")
-        elif action == "SetTransitionDuration":
-           logging.info("faderType")
-        elif action == "SetCurrentProfile":
-           logging.info("faderType")
-        elif action == "SetCurrentSceneCollection":
-           logging.info("faderType")
-        elif action == "ResetSceneItem":
-           logging.info("faderType")
-        elif action == "SetTextGDIPlusText":
-           logging.info("faderType")
-        elif action == "SetBrowserSourceURL":
-           logging.info("faderType")
-        elif action == "ReloadBrowserSource":
-           logging.info("faderType")
-        elif action == "TakeSourceScreenshot":
-           logging.info("faderType")
-        elif action == "EnableSourceFilter":
-           logging.info("faderType")
-        elif action == "DisableSourceFilter":
-           logging.info("faderType")
-        elif action == "ToggleSourceFilter":
-           logging.info("faderType")
+        x=actionList[action]
+        #Get the Number of blank slots and insert them
+        Blanks=3-x[0]
+        self.insertblank(Blanks)
+        actnum=0
+        while actnum < x[0]:
+            y=x[0]+actnum+1
+            act=x[y]
+            actnum+=1
+            return eval(act)
 
 
 
 
 
+    def GainFilter(self, row, col, source):
+        text=form.list_action.cellWidget(row, 5).currentText()
 
-    def setupOption2(self,action,*extra):
-        logging.info("Option 2")
-    def setupOption3(self,action,*extra):
-        logging.info("Option 3")
+
+
+    # Inserts blank disabled comboboxes into table when needed
     def insertblank(self, num):
         combo=QtWidgets.QComboBox()
         combo2=QtWidgets.QComboBox()
@@ -1049,11 +459,14 @@ class EditTable():
             form.list_action.setItem(self.rowNumber,7,QtWidgets.QTableWidgetItem())
             form.list_action.setCellWidget(self.rowNumber,7, combo)
             self.disableCombo(combo)
+            self.enableCombo(combo2)
+            self.enableCombo(combo3)
         elif num == 2:
             form.list_action.setItem(self.rowNumber,7,QtWidgets.QTableWidgetItem())
             form.list_action.setCellWidget(self.rowNumber,7, combo2)
             form.list_action.setItem(self.rowNumber,6,QtWidgets.QTableWidgetItem())
             form.list_action.setCellWidget(self.rowNumber,6, combo3)
+            self.enableCombo(combo)
             self.disableCombo(combo2)
             self.disableCombo(combo3)
         elif num ==3:
@@ -1067,12 +480,56 @@ class EditTable():
             self.disableCombo(combo2)
             self.disableCombo(combo3)
 
+    # Updates each field in table when a new option is chosen.
+    @Slot(int)
+    def updateAction(self):
+        x=form.list_action.selectedItems()
+        row=0
+        text=""
+        for each in x:
+            row=each.row()
+            col=each.column()
+            text=form.list_action.cellWidget(row, col).currentText()
+            logging.info("Change in col: "+str(col))
+            if col==2:
+                logging.info("Changed Input type")
+                form.list_action.setItem(row,4,QtWidgets.QTableWidgetItem())
+                form.list_action.setCellWidget(row,4, self.MakeActionSelector(text))
+                if text =="fader":
+                    self.SetupOptions("SetVolume", row, 5 )
+                elif text=="button":
+                    self.SetupOptions("SetCurrentScene", row,5)
+            elif col ==4: #action
+                logging.info("Changed action")
+                action=form.list_action.cellWidget(row, 4).currentText()
+                self.SetupOptions(action,row,5)
+
+            elif col ==5:
+                logging.info("Changed Option 1")
+
+            elif col ==6:
+                logging.info("Changed Option 2")
+            elif col ==7:
+                logging.info("Changed Option 3")
+
+
+
+
+    def GetCurrentScene(self):
+        ws = create_connection("ws://" + serverIP + ":" + serverPort)
+        ws.send('{"request-type": "GetCurrentScene","message-id": "MIDItoOBS-checksourcegainfilter"}')
+        result =  ws.recv()
+        ws.close()
+        jsn = json.loads(result)
+        return str(jsn["name"])
+
+    #for Initial Rows
     def addRow(self, mtype, msgNoC, inputType, action, deviceID, *option):
         rowNumber=self.rowNumber
         form.list_action.insertRow(self.rowNumber)
 
         form.list_action.setItem(self.rowNumber,0,QtWidgets.QTableWidgetItem())
-        form.list_action.setCellWidget(self.rowNumber,0, self.add_msg_type_drop(mtype))
+        form.list_action.setCellWidget(self.rowNumber,0, self.MakeMsgTypeSelector(mtype))
 
 
         x= QtWidgets.QTableWidgetItem(msgNoC)
@@ -1094,21 +551,10 @@ class EditTable():
 
 
 
-
-
         if option:
+            self.SetupOptions(action,self.rowNumber,5,option)
 
-            form.list_action.setItem(self.rowNumber,5,QtWidgets.QTableWidgetItem())
 
-            form.list_action.setCellWidget(self.rowNumber,5, self.setupoption1(action, option[0]))
-            if len(option) >1:
-                a=QtWidgets.QTableWidgetItem(option[1])
-                a.setTextAlignment(QtCore.Qt.AlignCenter)
-
-                form.list_action.setItem(self.rowNumber,6,a)
-            self.insertblank(2)
-        else:
-            self.insertblank(3)
 
         self.rowNumber=+1
 
@@ -1124,8 +570,9 @@ class EditTable():
         elif msg_type == "note_on":
             inputType = "button"
             option="SetCurrentScene"
+
         form.list_action.setItem(self.rowNumber,0,QtWidgets.QTableWidgetItem())
-        form.list_action.setCellWidget(self.rowNumber,0, editTable.add_msg_type_drop(msg_type))
+        form.list_action.setCellWidget(self.rowNumber,0, editTable.MakeMsgTypeSelector(msg_type))
 
         form.list_action.setItem(self.rowNumber,1,QtWidgets.QTableWidgetItem(msgNoC))
 
@@ -1139,7 +586,7 @@ class EditTable():
         form.list_action.setCellWidget(self.rowNumber,3, self.MakeInputDeviceList(deviceID))
 
         form.list_action.setItem(self.rowNumber,5,QtWidgets.QTableWidgetItem())
-        form.list_action.setCellWidget(self.rowNumber,5, self.setupoption1(inputType, option[0]))
+        form.list_action.setCellWidget(self.rowNumber,5, self.SetupOptions(inputType, option[0]))
 
         form.list_action.setItem(self.rowNumber,6,QtWidgets.QTableWidgetItem(str(rowNumber)))
 
@@ -1147,7 +594,7 @@ class EditTable():
 
     @Slot(str,str)
     def testing(self,type, msg):
-        #logging.info(type)
+        #logging.debug(type)
         form.testlabel2.setText(msg)
         #form.testlabel.setText(type)
     # Add one full row at a time,
@@ -1156,93 +603,12 @@ class EditTable():
     # or set it up so that an edit area is populated on a click
     # Lets go with # 2 for now
 
-def ResetMidiController():
-    outport= mido.open_output("X-TOUCH COMPACT 1")
-    counter=0
-    counter2=0
-    counter3=26
-    while counter <=39:
-        x=mido.Message("note_off", note=counter)
-        outport.send(x)
-        counter+=1
-    while counter2 <=9:
-        x=mido.Message("control_change", control=counter2,value=0)
-        outport.send(x)
-        counter2+=1
-    while counter3 <=41:
-        x=mido.Message("control_change", control=counter3,value=0)
-        outport.send(x)
-        counter3+=1
-
-def ChangedScenes(scene):
-    checkIfSourceHasGainFilter(scene)
-    getSourceFilters(scene)
-    logging.info(scene)
-    updateSpecialSources()
-    updateTransitionList()
-    updateProfileList()
-    updatesceneCollectionList()
-def myExitHandler():
-    logging.info("kill application")
-
-    app.quit
-    #sys.exit(app.exec_())
-
-def startup():
-    getDevices()
-    #
-
-
 class qtobsmidi(QMainWindow):
     def currentIndexChanged(self, qmodelindex):
             item = self.InputTypeSelector.currentItem()
-            logging.info(str(item.index()))
+            logging.debug(str(item.index()))
     def __init__(self):
         QMainWindow.__init__(self)
-
-
-def startStopBtnHandle():
-    global btnStart
-    if btnStart == False:
-
-       startOBSconnection()
-       form.btn_Start.setText("Stop")
-       btnStart = True
-    elif btnStart == True:
-        stopOBSconnection()
-        form.btn_Start.setText("Start")
-        btnStart = False
-
-def startOBSconnection():
-    #Disconnect from setup connection to obs and Midi
-    #Call OBSMIDI script
-    #OBS.start()
-    tray.showMessage("Connecting","Connecting to OBS",icon)
-    OBS.connect()
-    #logging.info("Connecting to OBS")
-def stopOBSconnection():
-    icon.Off
-    #OBS.stop()
-    OBS.disconnect()
-    tray.showMessage("Disconnecting","disconnecting from OBS",icon)
-def map_scale(inp, ista, isto, osta, osto):
-    return osta + (osto - osta) * ((inp - ista) / (isto - ista))
-def get_logger(name, level=logging.INFO):
-   log_format = logging.Formatter('[%(asctime)s] (%(levelname)s) T%(thread)d : %(message)s')
-
-   std_output = logging.StreamHandler(stdout)
-   std_output.setFormatter(log_format)
-   std_output.setLevel(level)
-
-   file_output = logging.FileHandler(path.join(SCRIPT_DIR, "debug.log"))
-   file_output.setFormatter(log_format)
-   file_output.setLevel(level)
-
-   logger = logging.getLogger(name)
-   logger.setLevel(logging.DEBUG)
-   logger.addHandler(file_output)
-   logger.addHandler(std_output)
-   return logger
 
 
 class newobs():
@@ -1268,11 +634,11 @@ class newobs():
 
     def on_event(self, message):
         QApplication.processEvents()
-        logging.info(u"Got message: {}".format(message))
+        logging.debug(u"Got message: {}".format(message))
 
 
     def on_switch(self, message):
-        logging.info(u"You changed the scene to {}".format(message.getSceneName()))
+        logging.debug(u"You changed the scene to {}".format(message.getSceneName()))
     def getSpecialSources(self):
         sources=specialSourcesList
         scenes = self.ws.call(requests.GetSpecialSources())
@@ -1341,21 +707,123 @@ class newobs():
         #logging.debug(sources)
         return sources
     def test(self):
-        logging.info("test")
-        self.getSpecialSources()
+        logging.debug("test")
+        self.getSourceList()
     def getscenelist(self):
         try:
             scenes = self.ws.call(requests.GetSceneList())
-            #logging.info(scenes)
+            sceneListLong.clear()
+            sceneListShort.clear()
+            #logging.debug(scenes)
             for each in scenes.getScenes():
-                #logging.info(each['name'])
+                #logging.debug(each['name'])
                 sceneListLong.append(each)
                 sceneListShort.append(each["name"])
 
+
         except:
-            logging.info("unable to get scenes")
+            logging.debug("unable to get scenes")
+    def getSourceList(self):
+        sources = self.ws.call(requests.GetSourcesList())
+        for each in sources.getSources():
+            logging.info(each)
+            sourceListLong.append(each)
+            sourceListShort.append(each["name"])
+    def getSourceTypesList(self):
+        sources = self.ws.call(requests.GetSourceTypesList())
+        for each in sources.getTypes():
+            if each['caps']['hasAudio'] == True:
+                specialSourcesList.append(each['displayName'])
+def ResetMidiController():
+    outport= mido.open_output("X-TOUCH COMPACT 1")
+    counter=0
+    counter2=0
+    counter3=26
+    while counter <=39:
+        x=mido.Message("note_off", note=counter)
+        outport.send(x)
+        counter+=1
+    while counter2 <=9:
+        x=mido.Message("control_change", control=counter2,value=0)
+        outport.send(x)
+        counter2+=1
+    while counter3 <=41:
+        x=mido.Message("control_change", control=counter3,value=0)
+        outport.send(x)
+        counter3+=1
+def myExitHandler():
+    logging.debug("kill application")
+
+    app.quit
+    #sys.exit(app.exec_())
 
 
+
+
+def startStopBtnHandle():
+    global btnStart
+    if btnStart == False:
+
+       startOBSconnection()
+       form.btn_Start.setText("Stop")
+       btnStart = True
+    elif btnStart == True:
+        stopOBSconnection()
+        form.btn_Start.setText("Start")
+        btnStart = False
+
+def startOBSconnection():
+    #Disconnect from setup connection to obs and Midi
+    #Call OBSMIDI script
+    #OBS.start()
+    tray.showMessage("Connecting","Connecting to OBS",icon)
+    OBS.connect()
+    #logging.debug("Connecting to OBS")
+def stopOBSconnection():
+    icon.Off
+    #OBS.stop()
+    OBS.disconnect()
+    tray.showMessage("Disconnecting","disconnecting from OBS",icon)
+def map_scale(inp, ista, isto, osta, osto):
+    return osta + (osto - osta) * ((inp - ista) / (isto - ista))
+def get_logger(name, level=logging.debug):
+   log_format = logging.Formatter('[%(asctime)s] (%(levelname)s) T%(thread)d : %(message)s')
+
+   std_output = logging.StreamHandler(stdout)
+   std_output.setFormatter(log_format)
+   std_output.setLevel(level)
+
+   file_output = logging.FileHandler(path.join(SCRIPT_DIR, "debug.log"))
+   file_output.setFormatter(log_format)
+   file_output.setLevel(level)
+
+   logger = logging.getLogger(name)
+   logger.setLevel(logging.DEBUG)
+   logger.addHandler(file_output)
+   logger.addHandler(std_output)
+   return logger
+
+
+
+
+def entryExists(value):
+    x=form.list_action.findItems(str(value), QtCore.Qt.MatchExactly | QtCore.Qt.MatchRecursive)
+    if x!=[]:
+        return True
+    else:
+        return False
+
+    #used for connecting Midi to obs for actually controlling OBS
+            #logging.info(str(each['hasAudio']))
+
+def ScriptExit(signal, frame):
+    logging.debug("Closing midi ports...")
+    for port in midiports:
+        port["object"].close()
+    logging.debug("Closing database...")
+    database.close()
+    logging.debug("Exiting...")
+    sys.exit(0)
 if __name__ == "__main__":
     format = "%(asctime)s: %(message)s"
     logging.basicConfig(format=format, level=logging.INFO, datefmt="%H:%M:%S")
@@ -1368,12 +836,9 @@ if __name__ == "__main__":
     form = Form()
     form.setupUi(window)
     window.show()
-    logging.info("Program Startup")
+    logging.debug("Program Startup")
 
-    startuped=True
-    if startuped==True:
-        startup()
-        startuped=False
+
     #initialize table
 
     # Setup external MidiToOBS Script
@@ -1382,10 +847,12 @@ if __name__ == "__main__":
     OBS.connect()
     OBS.getscenelist()
     OBS.getSpecialSources()
+    OBS.getSourceList()
+    OBS.getSourceTypesList()
     midi=handler()
     editTable=EditTable(form)
 
-    #logging.info(midiports)
+    #logging.debug(midiports)
     #ResetMidiController()
 
     #Setup System Tray
@@ -1407,17 +874,19 @@ if __name__ == "__main__":
     form.btn_SaveTable.clicked.connect(editTable.saveTable)
     form.btn_Start.clicked.connect(startStopBtnHandle)
     form.btn_test.clicked.connect(OBS.test)
+
+    #Setup Connection for adding to table
     midi.SendMessage.connect(editTable.testing)
 
-    form.list_action.itemSelectionChanged.connect(editTable.updateAction)
-    form.list_action.itemSelectionChanged.connect(editTable.updateAction)
+    #form.list_action.itemSelectionChanged.connect(editTable.updateAction)
+    #form.list_action.itemSelectionChanged.connect(editTable.updateAction)
 
 
 
     tray.show()
     midi.connectToDevice()
     sys.exit(app.exec_())
-    #logging.info(actionQuit)
+    #logging.debug(actionQuit)
 
     #editTable.MakeinputDeviceList()
 
