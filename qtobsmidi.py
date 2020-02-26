@@ -53,14 +53,8 @@ password="banana"
 rowNumber=0
 database = TinyDB("config.json", indent=4)
 db = database.table("keys", cache_size=0)
-inpType = ["Button", "Fader"]
+inpType = ["button", "fader"]
 devdb = database.table("devices", cache_size=0)
-buttonActions = ["SetCurrentScene", "SetPreviewScene", "TransitionToProgram", "SetCurrentTransition", "SetSourceVisibility", "ToggleSourceVisibility", "ToggleMute", "SetMute",
-                 "StartStopStreaming", "StartStreaming", "StopStreaming", "StartStopRecording", "StartRecording", "StopRecording", "StartStopReplayBuffer",
-                 "StartReplayBuffer", "StopReplayBuffer", "SaveReplayBuffer", "PauseRecording", "ResumeRecording", "SetTransitionDuration", "SetCurrentProfile","SetCurrentSceneCollection",
-                 "ResetSceneItem", "SetTextGDIPlusText", "SetBrowserSourceURL", "ReloadBrowserSource", "TakeSourceScreenshot", "EnableSourceFilter", "DisableSourceFilter", "ToggleSourceFilter"]
-
-faderActions = ["SetVolume", "SetSyncOffset", "SetSourcePosition", "SetSourceRotation", "SetSourceScale", "SetTransitionDuration", "SetGainFilter"]
 
 jsonArchive = {"SetCurrentScene": """{"request-type": "SetCurrentScene", "message-id" : "1", "scene-name" : "%s"}""",
                "SetPreviewScene": """{"request-type": "SetPreviewScene", "message-id" : "1","scene-name" : "%s"}""",
@@ -139,21 +133,21 @@ actionList   = {"StartStopReplayBuffer":     [0],
                 "ToggleSourceFilter":        [3,  'source', 'filter',   'bool'      ]
 }
 
-Actions={  "source"        :   "self.Make.SourceSelector(row, col, extra)"             ,
-           "scene-name"    :   "self.Make.SceneSelector(row, col, extra)"              ,
-           "transition"    :   "self.Make.TransitionSelector(row, col, extra)"         ,
-           'profile'       :   "self.Make.ProfileSelector(row, col, extra)"            ,
-           'sc-name'       :   "self.Make.SceneCollectionSelector(row, col, extra)"    ,
-           'item'          :   "self.Make.ItemSelector(row, col, extra)"               ,
-           'bool'          :   "self.Make.Checkbox(row,col)"                           ,
-           'position'      :   "self.makePositionSelector(row,col)"                    ,
-           'rotation'      :   "self.makeRotationSelector(row,col)"                    ,
-           'scale'         :   "self.makeScaleSelector(row,col)"                       ,
-           'offset'        :   "self.Make.OffsetSelector(row,col)"                     ,
-           'url'           :   "self.Make.URLSelector(row,col)"                        ,
-           'db'            :   "self.makeDBSelector(row,col)"                          ,
-           'text'          :   "self.Make.TextboxSelector(row,col)"                    ,
-           'filter'        :   "self.Make.FilterSelector(row,col)"                     }
+Actions={  "source"        :   "self.Make.Combo(sourceListShort,                row, col, extra)"   ,
+           "scene-name"    :   "self.Make.Combo(sceneListShort,                 row, col, extra)"   ,
+           "transition"    :   "self.Make.Combo(transitionList,                 row, col, extra)"   ,
+           'profile'       :   "self.Make.Combo(profilesList,                   row, col, extra)"   ,
+           'sc-name'       :   "self.Make.Combo(sceneCollectionList,            row, col, extra)"   ,
+           'item'          :   "self.Make.Combo(itemList,                       row, col, extra)"   ,
+           'bool'          :   "self.Make.Checkbox(                             row,col)"           ,
+           'position'      :   "self.Make.Position(                             row,col)"           ,
+           'rotation'      :   "self.Make.Rotation(                             row,col)"           ,
+           'scale'         :   "self.Make.Scale(                                row,col)"           ,
+           'offset'        :   "self.Make.Offset(                               row,col)"           ,
+           'url'           :   "self.Make.URL(                                  row,col)"           ,
+           'db'            :   "self.Make.DB(                                   row,col)"           ,
+           'text'          :   "self.Make.Textbox(                              row,col)"           ,
+           'filter'        :   "self.Make.Combo(self.Update.filter(sourceListShort[0]),     row,col)"           }
 rowTemplate = { 1   :   "msg_type"      ,
                 2   :   "msgNoC"        ,
                 3   :   "input_type"    ,
@@ -161,6 +155,17 @@ rowTemplate = { 1   :   "msg_type"      ,
                 5   :   "deviceID"      ,
                 6   :   "option"
                 }
+ActionsType = {  "button":  [   "SetCurrentScene", "SetPreviewScene",          "TransitionToProgram","SetCurrentTransition","SetSourceVisibility","ToggleSourceVisibility",
+                            "ToggleMute", "SetMute", "StartStopStreaming", "StartStreaming","StopStreaming","StartStopRecording","StartRecording",
+                            "StopRecording", "StartStopReplayBuffer",      "StartReplayBuffer","StopReplayBuffer","SaveReplayBuffer","PauseRecording",
+                            "ResumeRecording", "SetTransitionDuration",    "SetCurrentProfile","SetCurrentSceneCollection","ResetSceneItem","SetTextGDIPlusText",
+                            "SetBrowserSourceURL", "ReloadBrowserSource",  "TakeSourceScreenshot","EnableSourceFilter","DisableSourceFilter", "ToggleSourceFilter"
+                        ],
+            "fader":    [   "SetVolume", "SetSyncOffset", "SetSourcePosition", "SetSourceRotation", "SetSourceScale", "SetTransitionDuration", "SetGainFilter"     ]
+            }
+
+makes={}
+itemList = {}
 sceneListShort = []
 sceneListLong = []
 sourceListShort = []
@@ -171,6 +176,10 @@ profilesList = []
 sceneCollectionList = []
 gdisourcesList = []
 gainList=[]
+InList=[]
+OutList=[]
+filterList=[]
+msgType=["control_change", "program_change", "note_on"]
 value = ""
 note = ""
 midiports = []
@@ -231,6 +240,9 @@ class EditTable():
             self.addRow(str(RowData["msg_type"]),str(RowData["msgNoC"]),str(RowData["input_type"]),str(res["request-type"]),str(RowData["deviceID"]),option)
         self.table()
 
+    def GetSource(self, row):
+        text=form.list_action.cellWidget(row, 5).currentText()
+        return text
 
     class UPDATE():
         def __init__(self, form):
@@ -240,8 +252,10 @@ class EditTable():
             logging.info("updateSourceList")
         def UpdateSceneList(self):
             logging.info("updateSourceList")
-        def UpdateFilterList(self):
+        def filter(self, source):
+            filter=OBS.getFilterList(source)
             logging.info("updateSourceList")
+            return filterList
         def UpdateItemList(self):
             logging.info("updateSourceList")
         def UpdateTransitionList(self):
@@ -252,115 +266,40 @@ class EditTable():
     class MAKE():
         def __init__(self, form, EditTable):
             logging.info("Create Make Class")
-        def MsgTypeSelector(self, msg):
-            drop_msg_type=QtWidgets.QComboBox()
-            drop_msg_type.insertItems(0, ["control_change", "program_change", "note_on"])
-            x=drop_msg_type.findText(msg, QtCore.Qt.MatchExactly | QtCore.Qt.MatchRecursive)
-            drop_msg_type.setCurrentIndex(x)
-            return drop_msg_type
-        def ActionSelector(self, type, *action):
-            #logging.debug("Setting up actions")
-            drop_msg_type=QtWidgets.QComboBox()
-            counter=0
-            if type == "button":
-                for each in buttonActions:
-                    drop_msg_type.addItem(str(each))
-                    counter+=1
-            elif type== "fader":
-                for each in faderActions:
-                    drop_msg_type.addItem(str(each))
-                    counter+=1
-            if action:
-                x=drop_msg_type.findText(action[0], QtCore.Qt.MatchExactly | QtCore.Qt.MatchRecursive)
-                drop_msg_type.setCurrentIndex(x)
-            drop_msg_type.currentIndexChanged.connect(EditTable.updateAction)
-            return drop_msg_type
-        def SceneSelector(self,row, col=5,*existing):
-            sceneCombo=QtWidgets.QComboBox()
-            for scene in sceneListShort:
-                sceneCombo.addItem(scene)
+        def Combo(self,list, row, col, *existing):
+            form.list_action.setItem(row,col,QtWidgets.QTableWidgetItem())
+            Combo=QtWidgets.QComboBox()
+            for item in list:
+                Combo.addItem(str(item))
+            form.list_action.setItem(row,col,QtWidgets.QTableWidgetItem())
+            form.list_action.setCellWidget(row,col,Combo)
             if existing:
-                a=str(existing[0][0])
-                logging.info(a)
-                x=sceneCombo.findText(a, QtCore.Qt.MatchStartsWith | QtCore.Qt.MatchRecursive)
-                sceneCombo.setCurrentIndex(x)
+                logging.info(existing[0])
+                x=Combo.findText(str(existing[0]), QtCore.Qt.MatchContains | QtCore.Qt.MatchRecursive)
+                logging.info(x)
+                if x == -1:
+                    Combo.setCurrentIndex(0)
+                else:
+                    Combo.setCurrentIndex(x)
+            else:
+                Combo.setCurrentIndex(0)
+            Combo.currentIndexChanged.connect(EditTable.updateAction)
 
-            sceneCombo.setCurrentIndex(0)
-            sceneCombo.currentIndexChanged.connect(EditTable.updateAction)
-            form.list_action.setItem(row,col,QtWidgets.QTableWidgetItem())
-            form.list_action.setCellWidget(row,col,sceneCombo)
-            return sceneCombo
-        def SourceSelector(self, row, col=5, *existing):
-            sceneCombo=QtWidgets.QComboBox()
-            for source in sourceListShort:
-                #logging.debug(line)
-                sceneCombo.addItem(source)
-                #logging.debug(scene)
 
-            sceneCombo.currentIndexChanged.connect(EditTable.updateAction)
-            form.list_action.setItem(row,col,QtWidgets.QTableWidgetItem())
-            form.list_action.setCellWidget(row,col,sceneCombo)
-        def BrowserSourceSelector(self, row, col, *existing):
-            sceneCombo=QtWidgets.QComboBox()
-            for source in sourceListShort:
-                #logging.debug(line)
-                sceneCombo.addItem(source)
-                #logging.debug(scene)
-            if existing:
-                logging.info("existing = "+ existing[0])
-                x=sceneCombo.findText(existing[0], QtCore.Qt.MatchStartsWith | QtCore.Qt.MatchRecursive)
-                sceneCombo.setCurrentIndex(x)
-
-            sceneCombo.currentIndexChanged.connect(editTable.updateAction)
-            form.list_action.setItem(row,col,QtWidgets.QTableWidgetItem())
-            form.list_action.setCellWidget(row,col,sceneCombo)
-        def InputDeviceList(self,*existing):
-            deviceCombo=QtWidgets.QComboBox()
-            inputs=mido.get_input_names()
-            for each in inputs:
-                deviceCombo.addItem(str(each))
-            if existing:
-                deviceCombo.setCurrentIndex(int(existing[0])-1)
-            return deviceCombo
-        def MakeOutputDeviceList(self, *existing):
-            deviceCombo=QtWidgets.QComboBox()
-            inputs=mido.get_input_names()
-            for each in inputs:
-                deviceCombo.addItem(str(each))
-            if existing:
-                deviceCombo.setCurrentIndex(int(existing[0])-1)
-            return deviceCombo
-        def VolumeSelector(self, row, col=5, *existing):
-            volumeCombo=QtWidgets.QComboBox()
-            for item in specialSourcesList:
-                volumeCombo.addItem(str(item))
-            if existing:
-                x=volumeCombo.findText(str(existing[0]), QtCore.Qt.MatchContains | QtCore.Qt.MatchRecursive)
-                volumeCombo.setCurrentIndex(x)
-            volumeCombo.setCurrentIndex(0)
-            volumeCombo.currentIndexChanged.connect(EditTable.updateAction)
-            form.list_action.setItem(row,col,QtWidgets.QTableWidgetItem())
-            form.list_action.setCellWidget(row,col,volumeCombo)
-        def ProfileSelector(self,*existing):
-            logging.debug("Setting up profiles")
-        def TransitionsSelector(self,*existing):
-            logging.debug("Setting up transitions")
         def Checkbox(self, row, col=6, *existing):
             logging.info("make checkbox")
-        def add_input_type_drop(self, msg):
-            x=0
-
-            drop_msg_type=QtWidgets.QComboBox()
-            drop_msg_type.insertItems(0, ["button", "fader"])
-            x=drop_msg_type.findText(msg, QtCore.Qt.MatchExactly | QtCore.Qt.MatchRecursive)
-            drop_msg_type.setCurrentIndex(x)
-            drop_msg_type.currentIndexChanged.connect(EditTable.updateAction)
-            return drop_msg_type
+            box=QtWidgets.QCheckBox()
+            form.list_action.setItem(row,col,QtWidgets.QTableWidgetItem())
+            form.list_action.setCellWidget(row,col,box)
+            return box
 
 
+        def TextInput(self, row, col, *existing):
+            box=QtWidgets.QPlainTextEdit()
+            return box
     def disableCombo(self, Combo):
         Combo.setEnabled(False)
-        return Combo
+
 
     def enableCombo(self,Combo):
         Combo.setEnabled(True)
@@ -446,19 +385,22 @@ class EditTable():
 
     def table(self):
         self.tableWidget = form.list_action
-    def SetupOptions(self,action,row, col, extra="None"):
+    def SetupOptions(self,action,row, col2, extra="None"):
         #Grab Action List)
         x=actionList[action]
         #Get the Number of blank slots and insert them
-        Blanks=3-x[0]
-        self.insertblank(Blanks)
+        Blanks=x[0]
+        self.insertblank(Blanks, row)
         actnum=0
         while actnum < x[0]:
             y=actnum+1
             act=x[y]
-            logging.info(act)
+            logging.info("actnum: "+str(actnum))
+            logging.info(" act: "+act)
+            logging.info("Actions: "+Actions[act])
+            col=col2+actnum
+            eval(Actions[act])
             actnum+=1
-            return eval(Actions[act])
 
 
 
@@ -467,31 +409,33 @@ class EditTable():
     def GainFilter(self, row, col, source):
         text=form.list_action.cellWidget(row, 5).currentText()
     # Inserts blank disabled comboboxes into table when needed
-    def insertblank(self, num):
+    def insertblank(self, num,row):
+        num2=3-num
         combo=QtWidgets.QComboBox()
         combo2=QtWidgets.QComboBox()
         combo3=QtWidgets.QComboBox()
-        if num == 1:
-            form.list_action.setItem(self.rowNumber,7,QtWidgets.QTableWidgetItem())
-            form.list_action.setCellWidget(self.rowNumber,7, combo)
+        logging.info("blanknum: " +str(num2))
+        if num2 == 1:
+            form.list_action.setItem(row,7,QtWidgets.QTableWidgetItem())
+            form.list_action.setCellWidget(row,7, combo)
             self.disableCombo(combo)
             self.enableCombo(combo2)
             self.enableCombo(combo3)
-        elif num == 2:
-            form.list_action.setItem(self.rowNumber,7,QtWidgets.QTableWidgetItem())
-            form.list_action.setCellWidget(self.rowNumber,7, combo2)
-            form.list_action.setItem(self.rowNumber,6,QtWidgets.QTableWidgetItem())
-            form.list_action.setCellWidget(self.rowNumber,6, combo3)
+        elif num2 == 2:
+            form.list_action.setItem(row,7,QtWidgets.QTableWidgetItem())
+            form.list_action.setCellWidget(row,7, combo2)
+            form.list_action.setItem(row,6,QtWidgets.QTableWidgetItem())
+            form.list_action.setCellWidget(row,6, combo3)
             self.enableCombo(combo)
             self.disableCombo(combo2)
             self.disableCombo(combo3)
-        elif num ==3:
-            form.list_action.setItem(self.rowNumber,5,QtWidgets.QTableWidgetItem())
-            form.list_action.setCellWidget(self.rowNumber,5, combo)
-            form.list_action.setItem(self.rowNumber,6,QtWidgets.QTableWidgetItem())
-            form.list_action.setCellWidget(self.rowNumber,6, combo)
-            form.list_action.setItem(self.rowNumber,7,QtWidgets.QTableWidgetItem())
-            form.list_action.setCellWidget(self.rowNumber,7, combo)
+        elif num2 ==3:
+            form.list_action.setItem(row,5,QtWidgets.QTableWidgetItem())
+            form.list_action.setCellWidget(row,5, combo)
+            form.list_action.setItem(row,6,QtWidgets.QTableWidgetItem())
+            form.list_action.setCellWidget(row,6, combo2)
+            form.list_action.setItem(row,7,QtWidgets.QTableWidgetItem())
+            form.list_action.setCellWidget(row,7, combo3)
             self.disableCombo(combo)
             self.disableCombo(combo2)
             self.disableCombo(combo3)
@@ -509,21 +453,26 @@ class EditTable():
             logging.info("Change in col: "+str(col))
             if col==2:
                 logging.info("Changed Input type")
-                form.list_action.setItem(row,4,QtWidgets.QTableWidgetItem())
-                form.list_action.setCellWidget(row,4, self.MakeActionSelector(text))
+                editTable.Make.Combo(ActionsType[text], row, 4, text)
+
                 if text =="fader":
-                    self.SetupOptions("SetVolume", row, 5 )
+                    editTable.SetupOptions("SetVolume", row, 5)
                 elif text=="button":
-                    self.SetupOptions("SetCurrentScene", row,5)
+                    editTable.SetupOptions("SetCurrentScene", row,5)
             elif col ==4: #action
                 logging.info("Changed action")
                 action=form.list_action.cellWidget(row, 4).currentText()
-                self.SetupOptions(action,row,5)
+                editTable.SetupOptions(action,row,5)
 
             elif col ==5:
                 logging.info("Changed Option 1")
+                action=form.list_action.cellWidget(row, 4).currentText()
 
+                editTable.SetupOptions(action,row,5)
             elif col ==6:
+                action=form.list_action.cellWidget(row, 4).currentText()
+                editTable.SetupOptions(action,row,6)
+
                 logging.info("Changed Option 2")
             elif col ==7:
                 logging.info("Changed Option 3")
@@ -543,30 +492,15 @@ class EditTable():
     def addRow(self, mtype, msgNoC, inputType, action, deviceID, *option):
         rowNumber=self.rowNumber
         form.list_action.insertRow(self.rowNumber)
-
-        form.list_action.setItem(self.rowNumber,0,QtWidgets.QTableWidgetItem())
-        form.list_action.setCellWidget(self.rowNumber,0, self.Make.MsgTypeSelector(mtype))
-
-
+        #insert Message Type Combo
+        self.Make.Combo(msgType,self.rowNumber,0,mtype)
         x= QtWidgets.QTableWidgetItem(msgNoC)
         x.setTextAlignment(QtCore.Qt.AlignCenter)
-
         form.list_action.setItem(self.rowNumber,1,x)
 
-        form.list_action.setItem(self.rowNumber,2,QtWidgets.QTableWidgetItem())
-        combo=self.Make.add_input_type_drop(inputType)
-        combo.currentIndexChanged.connect(self.updateAction)
-        form.list_action.setCellWidget(self.rowNumber,2, combo)
-
-
-        form.list_action.setItem(self.rowNumber,4,QtWidgets.QTableWidgetItem())
-        form.list_action.setCellWidget(self.rowNumber,4, self.Make.ActionSelector(inputType, action))
-
-        form.list_action.setItem(self.rowNumber,3,QtWidgets.QTableWidgetItem())
-        form.list_action.setCellWidget(self.rowNumber,3, self.Make.InputDeviceList(deviceID))
-
-
-
+        self.Make.Combo(inpType, self.rowNumber, 2, inputType)
+        self.Make.Combo(InList, self.rowNumber, 3, InList[int(deviceID)-1])
+        self.Make.Combo(ActionsType[inputType], self.rowNumber, 4, action)
         if option:
             self.SetupOptions(action,self.rowNumber,5,option)
 
@@ -622,6 +556,8 @@ class newobs():
         #self.ws.register(self.on_event)
         #self.ws.register(self.on_switch, events.SwitchScenes)
         QApplication.processEvents()
+        self.get_inputs()
+        self.get_outputs()
         logging.debug("Setup OBS")
 
 
@@ -636,7 +572,19 @@ class newobs():
     def disconnect(self):
         QApplication.processEvents()
         self.ws.disconnect()
+    def get_inputs(self):
+        count=1
+        InList.clear()
+        for each in mido.get_input_names():
 
+            InList.append(each)
+            count+=1
+    def get_outputs(self):
+        count=0
+        OutList.clear()
+        for each in mido.get_output_names():
+            OutList.append(each)
+            count+=1
     def on_event(self, message):
         QApplication.processEvents()
         logging.debug(u"Got message: {}".format(message))
@@ -726,6 +674,17 @@ class newobs():
 
         except:
             logging.debug("unable to get scenes")
+    def getFilterList(self, source):
+        filterList.clear()
+        sources = self.ws.call(requests.GetSourceFilters(source))
+        count=0
+        for each in sources.getFilters():
+            logging.info(each["name"])
+            filterList.append(each["name"])
+            count+=1
+        if count ==0:
+            filterList.append("No Filters")
+
     def getSourceList(self):
         sources = self.ws.call(requests.GetSourcesList())
         for each in sources.getSources():
@@ -818,6 +777,11 @@ if __name__ == "__main__":
     Form, Window = uic.loadUiType("qtOBSMIDI.ui")
 
     app = QApplication(sys.argv)
+    makes={
+           "action"    :   QtWidgets.QComboBox()   ,
+           "scene"     :   QtWidgets.QComboBox()   ,
+           "source"    :   QtWidgets.QComboBox()
+           }
     window = Window()
     form = Form()
     form.setupUi(window)
@@ -868,7 +832,7 @@ if __name__ == "__main__":
     #form.list_action.itemSelectionChanged.connect(editTable.updateAction)
 
 
-
+    #editTable.Make.makeFromList("helo", 2,3)
     tray.show()
     midi.connectToDevice()
     sys.exit(app.exec_())
