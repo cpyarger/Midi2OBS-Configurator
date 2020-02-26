@@ -113,31 +113,38 @@ actionList   = {"StartStopReplayBuffer":     [0],
                 "StopRecording":             [0],
                 "PauseRecording":            [0],
                 "ResumeRecording":           [0],
-                "TakeSourceScreenshot":      [1,  'source',                       "self.MakeSourceSelector(row, col, extra)"],                                                               # Source
-                "ToggleMute":                [1,  'source',                       "self.MakeSourceSelector(row, col, extra)"],                                                               # Source
-                "SetVolume":                 [1,  'source',                       "self.MakeVolumeSelector(row, col, extra)"],                                                               # source <-volume
-                "SetCurrentScene":           [1,  'scene-name',                   "self.MakeSceneSelector(row, col, extra)"],                                                         # Scene
-                "SetPreviewScene":           [1,  'scene-name',                   "self.MakeSceneSelector(row, col, extra)"],                                                         # Scene
-                "TransitionToProgram":       [1,  'scene-name',                   "self.MakeSceneSelector(row, col, extra)"],                                                         # Scene
-                "SetCurrentTransition":      [1,  'transition',                   "self.MakeTransitionSelector(row, col, extra)"],                                                    # Scenee1,   # Transition
-                "SetCurrentProfile":         [1,  'profile',                      "self.MakeProfileSelector(row, col, extra)"],                                                       # Profile
-                "SetCurrentSceneCollection": [1,  'sc-name',                      "self.MakeSceneCollectionSelector(row, col, extra)"],                                               # sc-name
-                "ResetSceneItem":            [1,  'item',                         "self.MakeItemSelector(row, col, extra)"],                                                          # Item
-                "SetMute":                   [2,  'source', 'bool',               "self.MakeVolumeSelector(row, col, extra)",                    "self.makeCheckbox(row,col)"],              # Source, bool
-                "SetSyncOffset":             [2,  'source', 'offset',             "self.MakeSourceSelector(row, col, extra)",                    "self.makeOffsetSelector(row,col)"],        # Source, Offset
-                "ReloadBrowserSource":       [2,  'source', 'url',                "self.MakeSourceSelector(row, col, extra)",                    "self.makeURLSelector(row,col)"    ],       # Source, URL
-                "EnableSourceFilter":        [2,  'source', 'filter',             "self.MakeSourceSelector(row, col, extra)",                    "self.makeFilterSelector(row,col)",],       # Source, Filter
-                "DisableSourceFilter":       [2,  'source', 'filter',             "self.MakeSourceSelector(row, col, extra)",                    "self.makeFilterSelector(row,col)",],       # Source, Filter
-                "SetTextGDIPlusText":        [2,  'source', 'text',               "self.MakeSourceSelector(row, col, extra)",                    "makeTextboxSelector(row,col)"],            # Source, Text
-                "SetBrowserSourceURL":       [2,  'source', 'url',                "self.MakeSourceSelector(row, col, extra)",                    "self.makeURLSelector(row,col)"],           # Source, URL
-                "SetSourceVisibility":       [2,  'item', 'bool',                 "self.MakeItemSelector(row, col, extra)",                      "self.MakeCheckbox(row,col)"],              # Item, Bool(visible)
-                "ToggleSourceVisibility":    [2,  'item', 'bool',                 "self.MakeItemSelector(row, col, extra)",                      "self.MakeCheckbox(row,col)"],              # Item, Bool(visible)
-                "SetSourceScale":            [3,  'source', 'item', 'scale',      "self.MakeSourceSelector(row, col, extra)",                    "self.MakeItemSelector(row, col, extra)",   "self.makeScaleSelector(row,col)"],      # Scene, Item, Scale
-                "SetSourcePosition":         [3,  'source', 'item', 'position',   "self.MakeSourceSelector(row, col, extra)",                    "self.MakeItemSelector(row, col, extra)",   "self.makePositionSelector(row,col)"],   # Scene, Item, Position
-                "SetSourceRotation":         [3,  'source', 'item', 'rotation',   "self.MakeSourceSelector(row, col, extra)",                    "self.MakeItemSelector(row, col, extra)",   "self.makeRotationSelector(row,col)"],   # Scene, Item, Rotation
-                "SetGainFilter":             [3,  'source', 'filter', 'db',       "self.MakeSourceSelector(row, col, extra)",                    "self.makeFilterSelector(row,col)",         "self.makeDBSelector(row,col)"],         # SOurce, Filter, Setting.DB
-                "ToggleSourceFilter":        [3,  'source', 'filter', 'bool',     "self.MakeSourceSelector(row, col, extra)",                    "self.makeFilterSelector(row,col)",         "self.makeCheckbox(row,col)"]            # Source, Filter, <-Bool
+                "TakeSourceScreenshot":      [1,  'source',                       "self.Make.SourceSelector(row, col, extra)"],                                                               # Source
+                "ToggleMute":                [1,  'source',                       "self.Make.SourceSelector(row, col, extra)"],                                                               # Source
+                "SetVolume":                 [1,  'source',                       "self.Make.VolumeSelector(row, col, extra)"],                                                               # source <-volume
+                "SetCurrentScene":           [1,  'scene-name',                   "self.Make.SceneSelector(row, col, extra)"],                                                         # Scene
+                "SetPreviewScene":           [1,  'scene-name',                   "self.Make.SceneSelector(row, col, extra)"],                                                         # Scene
+                "TransitionToProgram":       [1,  'scene-name',                   "self.Make.SceneSelector(row, col, extra)"],                                                         # Scene
+                "SetCurrentTransition":      [1,  'transition',                   "self.Make.TransitionSelector(row, col, extra)"],                                                    # Scenee1,   # Transition
+                "SetCurrentProfile":         [1,  'profile',                      "self.Make.ProfileSelector(row, col, extra)"],                                                       # Profile
+                "SetCurrentSceneCollection": [1,  'sc-name',                      "self.Make.SceneCollectionSelector(row, col, extra)"],                                               # sc-name
+                "ResetSceneItem":            [1,  'item',                         "self.Make.ItemSelector(row, col, extra)"],                                                          # Item
+                "SetMute":                   [2,  'source', 'bool',               "self.Make.VolumeSelector(row, col, extra)",                    "self.Make.Checkbox(row,col)"],              # Source, bool
+                "SetSyncOffset":             [2,  'source', 'offset',             "self.Make.SourceSelector(row, col, extra)",                    "self.Make.OffsetSelector(row,col)"],        # Source, Offset
+                "ReloadBrowserSource":       [2,  'source', 'url',                "self.Make.SourceSelector(row, col, extra)",                    "self.Make.URLSelector(row,col)"    ],       # Source, URL
+                "EnableSourceFilter":        [2,  'source', 'filter',             "self.Make.SourceSelector(row, col, extra)",                    "self.Make.FilterSelector(row,col)",],       # Source, Filter
+                "DisableSourceFilter":       [2,  'source', 'filter',             "self.Make.SourceSelector(row, col, extra)",                    "self.Make.FilterSelector(row,col)",],       # Source, Filter
+                "SetTextGDIPlusText":        [2,  'source', 'text',               "self.Make.SourceSelector(row, col, extra)",                    "self.Make.TextboxSelector(row,col)"],            # Source, Text
+                "SetBrowserSourceURL":       [2,  'source', 'url',                "self.Make.SourceSelector(row, col, extra)",                    "self.Make.URLSelector(row,col)"],           # Source, URL
+                "SetSourceVisibility":       [2,  'item', 'bool',                 "self.Make.ItemSelector(row, col, extra)",                      "self.Make.Checkbox(row,col)"],              # Item, Bool(visible)
+                "ToggleSourceVisibility":    [2,  'item', 'bool',                 "self.Make.ItemSelector(row, col, extra)",                      "self.Make.Checkbox(row,col)"],              # Item, Bool(visible)
+                "SetSourceScale":            [3,  'source', 'item', 'scale',      "self.Make.SourceSelector(row, col, extra)",                    "self.Make.ItemSelector(row, col, extra)",   "self.makeScaleSelector(row,col)"],      # Scene, Item, Scale
+                "SetSourcePosition":         [3,  'source', 'item', 'position',   "self.Make.SourceSelector(row, col, extra)",                    "self.Make.ItemSelector(row, col, extra)",   "self.makePositionSelector(row,col)"],   # Scene, Item, Position
+                "SetSourceRotation":         [3,  'source', 'item', 'rotation',   "self.Make.SourceSelector(row, col, extra)",                    "self.Make.ItemSelector(row, col, extra)",   "self.makeRotationSelector(row,col)"],   # Scene, Item, Rotation
+                "SetGainFilter":             [3,  'source', 'filter', 'db',       "self.Make.SourceSelector(row, col, extra)",                    "self.Make.FilterSelector(row,col)",         "self.makeDBSelector(row,col)"],         # SOurce, Filter, Setting.DB
+                "ToggleSourceFilter":        [3,  'source', 'filter', 'bool',     "self.Make.SourceSelector(row, col, extra)",                    "self.Make.FilterSelector(row,col)",         "self.makeCheckbox(row,col)"]            # Source, Filter, <-Bool
 }
+rowTemplate = { 1   :   "msg_type"      ,
+                2   :   "msgNoC"        ,
+                3   :   "input_type"    ,
+                4   :   "request-type"  ,
+                5   :   "deviceID"      ,
+                6   :   "option"
+                }
 sceneListShort = []
 sceneListLong = []
 sourceListShort = []
@@ -193,8 +200,12 @@ class handler(QtCore.QObject):
 
 class EditTable():
     rowNumber=0
+    Update=None
+    Make=None
     #define row dropdowns
     def __init__(self, form):
+        self.Make=self.MAKE(form, EditTable)
+        self.Update=self.UPDATE(form)
         result = db.all()
         self.rowNumber=rowNumber
         for rowNumbers, RowData in enumerate (result):
@@ -204,18 +215,131 @@ class EditTable():
             self.addRow(str(RowData["msg_type"]),str(RowData["msgNoC"]),str(RowData["input_type"]),str(res["request-type"]),str(RowData["deviceID"]),option)
         self.table()
 
-    def UpdateSourceList(self):
-        logging.info("updateSourceList")
-    def UpdateSceneList(self):
-        logging.info("updateSourceList")
-    def UpdateFilterList(self):
-        logging.info("updateSourceList")
-    def UpdateItemList(self):
-        logging.info("updateSourceList")
-    def UpdateTransitionList(self):
-        logging.info("updateSourceList")
-    def UpdateProfileList(self):
-        logging.info("updateSourceList")
+
+    class UPDATE():
+        def __init__(self, form):
+            logging.info("make update")
+
+        def UpdateSourceList(self):
+            logging.info("updateSourceList")
+        def UpdateSceneList(self):
+            logging.info("updateSourceList")
+        def UpdateFilterList(self):
+            logging.info("updateSourceList")
+        def UpdateItemList(self):
+            logging.info("updateSourceList")
+        def UpdateTransitionList(self):
+            logging.info("updateSourceList")
+        def UpdateProfileList(self):
+            logging.info("updateSourceList")
+
+    class MAKE():
+        def __init__(self, form, EditTable):
+            logging.info("Create Make Class")
+        def MsgTypeSelector(self, msg):
+            drop_msg_type=QtWidgets.QComboBox()
+            drop_msg_type.insertItems(0, ["control_change", "program_change", "note_on"])
+            x=drop_msg_type.findText(msg, QtCore.Qt.MatchExactly | QtCore.Qt.MatchRecursive)
+            drop_msg_type.setCurrentIndex(x)
+            return drop_msg_type
+        def ActionSelector(self, type, *action):
+            #logging.debug("Setting up actions")
+            drop_msg_type=QtWidgets.QComboBox()
+            counter=0
+            if type == "button":
+                for each in buttonActions:
+                    drop_msg_type.addItem(str(each))
+                    counter+=1
+            elif type== "fader":
+                for each in faderActions:
+                    drop_msg_type.addItem(str(each))
+                    counter+=1
+            if action:
+                x=drop_msg_type.findText(action[0], QtCore.Qt.MatchExactly | QtCore.Qt.MatchRecursive)
+                drop_msg_type.setCurrentIndex(x)
+            drop_msg_type.currentIndexChanged.connect(EditTable.updateAction)
+            return drop_msg_type
+        def SceneSelector(self,row, col=5,*existing):
+            sceneCombo=QtWidgets.QComboBox()
+            for scene in sceneListShort:
+                sceneCombo.addItem(scene)
+            if existing:
+                a=str(existing[0][0])
+                logging.info(a)
+                x=sceneCombo.findText(a, QtCore.Qt.MatchStartsWith | QtCore.Qt.MatchRecursive)
+                sceneCombo.setCurrentIndex(x)
+
+            sceneCombo.setCurrentIndex(0)
+            sceneCombo.currentIndexChanged.connect(EditTable.updateAction)
+            form.list_action.setItem(row,col,QtWidgets.QTableWidgetItem())
+            form.list_action.setCellWidget(row,col,sceneCombo)
+            return sceneCombo
+        def SourceSelector(self, row, col=5, *existing):
+            sceneCombo=QtWidgets.QComboBox()
+            for source in sourceListShort:
+                #logging.debug(line)
+                sceneCombo.addItem(source)
+                #logging.debug(scene)
+
+            sceneCombo.currentIndexChanged.connect(editTable.updateAction)
+            form.list_action.setItem(row,col,QtWidgets.QTableWidgetItem())
+            form.list_action.setCellWidget(row,col,sceneCombo)
+        def BrowserSourceSelector(self, row, col, *existing):
+            sceneCombo=QtWidgets.QComboBox()
+            for source in sourceListShort:
+                #logging.debug(line)
+                sceneCombo.addItem(source)
+                #logging.debug(scene)
+            if existing:
+                logging.info("existing = "+ existing[0])
+                x=sceneCombo.findText(existing[0], QtCore.Qt.MatchStartsWith | QtCore.Qt.MatchRecursive)
+                sceneCombo.setCurrentIndex(x)
+
+            sceneCombo.currentIndexChanged.connect(editTable.updateAction)
+            form.list_action.setItem(row,col,QtWidgets.QTableWidgetItem())
+            form.list_action.setCellWidget(row,col,sceneCombo)
+        def InputDeviceList(self,*existing):
+            deviceCombo=QtWidgets.QComboBox()
+            inputs=mido.get_input_names()
+            for each in inputs:
+                deviceCombo.addItem(str(each))
+            if existing:
+                deviceCombo.setCurrentIndex(int(existing[0])-1)
+            return deviceCombo
+        def MakeOutputDeviceList(self, *existing):
+            deviceCombo=QtWidgets.QComboBox()
+            inputs=mido.get_input_names()
+            for each in inputs:
+                deviceCombo.addItem(str(each))
+            if existing:
+                deviceCombo.setCurrentIndex(int(existing[0])-1)
+            return deviceCombo
+        def VolumeSelector(self, row, col=5, *existing):
+            volumeCombo=QtWidgets.QComboBox()
+            for item in specialSourcesList:
+                volumeCombo.addItem(str(item))
+            if existing:
+                x=volumeCombo.findText(str(existing[0]), QtCore.Qt.MatchContains | QtCore.Qt.MatchRecursive)
+                volumeCombo.setCurrentIndex(x)
+            volumeCombo.setCurrentIndex(0)
+            volumeCombo.currentIndexChanged.connect(EditTable.updateAction)
+            form.list_action.setItem(row,col,QtWidgets.QTableWidgetItem())
+            form.list_action.setCellWidget(row,col,volumeCombo)
+        def ProfileSelector(self,*existing):
+            logging.debug("Setting up profiles")
+        def TransitionsSelector(self,*existing):
+            logging.debug("Setting up transitions")
+        def Checkbox(self, row, col=6, *existing):
+            logging.info("make checkbox")
+        def add_input_type_drop(self, msg):
+            x=0
+
+            drop_msg_type=QtWidgets.QComboBox()
+            drop_msg_type.insertItems(0, ["button", "fader"])
+            x=drop_msg_type.findText(msg, QtCore.Qt.MatchExactly | QtCore.Qt.MatchRecursive)
+            drop_msg_type.setCurrentIndex(x)
+            drop_msg_type.currentIndexChanged.connect(EditTable.updateAction)
+            return drop_msg_type
 
 
     def disableCombo(self, Combo):
@@ -303,133 +427,11 @@ class EditTable():
         else:
             db.insert({"msg_type": msg_type, "msgNoC": msgNoC, "input_type": input_type, "action" : action, "deviceID": deviceID})
 
-    def add_input_type_drop(self, msg):
-        x=0
-
-        drop_msg_type=QtWidgets.QComboBox()
-        drop_msg_type.insertItems(0, ["button", "fader"])
-        x=drop_msg_type.findText(msg, QtCore.Qt.MatchExactly | QtCore.Qt.MatchRecursive)
-        drop_msg_type.setCurrentIndex(x)
-        drop_msg_type.currentIndexChanged.connect(self.updateAction)
-        return drop_msg_type
-
 
     def table(self):
         self.tableWidget = form.list_action
-
-    #Make Combo Box Widget Functions
-    def MakeMsgTypeSelector(self, msg):
-        drop_msg_type=QtWidgets.QComboBox()
-        drop_msg_type.insertItems(0, ["control_change", "program_change", "note_on"])
-        x=drop_msg_type.findText(msg, QtCore.Qt.MatchExactly | QtCore.Qt.MatchRecursive)
-        drop_msg_type.setCurrentIndex(x)
-        return drop_msg_type
-    def MakeActionSelector(self, type, *action):
-        #logging.debug("Setting up actions")
-        drop_msg_type=QtWidgets.QComboBox()
-        counter=0
-        if type == "button":
-            for each in buttonActions:
-                drop_msg_type.addItem(str(each))
-                counter+=1
-        elif type== "fader":
-            for each in faderActions:
-                drop_msg_type.addItem(str(each))
-                counter+=1
-        if action:
-            x=drop_msg_type.findText(action[0], QtCore.Qt.MatchExactly | QtCore.Qt.MatchRecursive)
-            drop_msg_type.setCurrentIndex(x)
-        drop_msg_type.currentIndexChanged.connect(self.updateAction)
-        return drop_msg_type
-
-    def MakeSceneSelector(self,row, col=5,*existing):
-
-        sceneCombo=QtWidgets.QComboBox()
-        for scene in sceneListShort:
-            sceneCombo.addItem(scene)
-        if existing:
-            a=str(existing[0][0])
-            logging.info(a)
-            x=sceneCombo.findText(a, QtCore.Qt.MatchStartsWith | QtCore.Qt.MatchRecursive)
-            sceneCombo.setCurrentIndex(x)
-
-        sceneCombo.setCurrentIndex(0)
-        sceneCombo.currentIndexChanged.connect(self.updateAction)
-        form.list_action.setItem(row,col,QtWidgets.QTableWidgetItem())
-        form.list_action.setCellWidget(row,col,sceneCombo)
-        return sceneCombo
-    def MakeSourceSelector(self, row, col=5, *existing):
-        sceneCombo=QtWidgets.QComboBox()
-        for source in sourceListShort:
-            #logging.debug(line)
-            sceneCombo.addItem(source)
-            #logging.debug(scene)
-
-        sceneCombo.currentIndexChanged.connect(self.updateAction)
-        form.list_action.setItem(row,col,QtWidgets.QTableWidgetItem())
-        form.list_action.setCellWidget(row,col,sceneCombo)
-    def MakeBrowserSourceSelector(self, row, col, *existing):
-        sceneCombo=QtWidgets.QComboBox()
-        for source in sourceListShort:
-            #logging.debug(line)
-            sceneCombo.addItem(source)
-            #logging.debug(scene)
-        if existing:
-            logging.info("existing = "+ existing[0])
-            x=sceneCombo.findText(existing[0], QtCore.Qt.MatchStartsWith | QtCore.Qt.MatchRecursive)
-            sceneCombo.setCurrentIndex(x)
-
-        sceneCombo.currentIndexChanged.connect(self.updateAction)
-        form.list_action.setItem(row,col,QtWidgets.QTableWidgetItem())
-        form.list_action.setCellWidget(row,col,sceneCombo)
-
-
-
-
-    def MakeInputDeviceList(self,*existing):
-        deviceCombo=QtWidgets.QComboBox()
-        inputs=mido.get_input_names()
-        for each in inputs:
-            deviceCombo.addItem(str(each))
-        if existing:
-            deviceCombo.setCurrentIndex(int(existing[0])-1)
-        return deviceCombo
-    def MakeOutputDeviceList(self, *existing):
-        deviceCombo=QtWidgets.QComboBox()
-        inputs=mido.get_input_names()
-        for each in inputs:
-            deviceCombo.addItem(str(each))
-        if existing:
-            deviceCombo.setCurrentIndex(int(existing[0])-1)
-        return deviceCombo
-    def MakeVolumeSelector(self, row, col=5, *existing):
-        volumeCombo=QtWidgets.QComboBox()
-        for item in specialSourcesList:
-            volumeCombo.addItem(str(item))
-        if existing:
-            x=volumeCombo.findText(str(existing[0]), QtCore.Qt.MatchContains | QtCore.Qt.MatchRecursive)
-            volumeCombo.setCurrentIndex(x)
-        volumeCombo.setCurrentIndex(0)
-        volumeCombo.currentIndexChanged.connect(self.updateAction)
-        form.list_action.setItem(row,col,QtWidgets.QTableWidgetItem())
-        form.list_action.setCellWidget(row,col,volumeCombo)
-
-
-    def MakeProfileSelector(self,*existing):
-        logging.debug("Setting up profiles")
-
-    def MakeTransitionsSelector(self,*existing):
-        logging.debug("Setting up transitions")
-
-
-
-
-    def MakeCheckbox(self, row, col=6, *existing):
-        logging.info("make checkbox")
-
     def SetupOptions(self,action,row, col, extra="None"):
         #Grab Action List)
-
         x=actionList[action]
         #Get the Number of blank slots and insert them
         Blanks=3-x[0]
@@ -447,9 +449,6 @@ class EditTable():
 
     def GainFilter(self, row, col, source):
         text=form.list_action.cellWidget(row, 5).currentText()
-
-
-
     # Inserts blank disabled comboboxes into table when needed
     def insertblank(self, num):
         combo=QtWidgets.QComboBox()
@@ -529,7 +528,7 @@ class EditTable():
         form.list_action.insertRow(self.rowNumber)
 
         form.list_action.setItem(self.rowNumber,0,QtWidgets.QTableWidgetItem())
-        form.list_action.setCellWidget(self.rowNumber,0, self.MakeMsgTypeSelector(mtype))
+        form.list_action.setCellWidget(self.rowNumber,0, self.Make.MsgTypeSelector(mtype))
 
 
         x= QtWidgets.QTableWidgetItem(msgNoC)
@@ -538,16 +537,16 @@ class EditTable():
         form.list_action.setItem(self.rowNumber,1,x)
 
         form.list_action.setItem(self.rowNumber,2,QtWidgets.QTableWidgetItem())
-        combo=self.add_input_type_drop(inputType)
+        combo=self.Make.add_input_type_drop(inputType)
         combo.currentIndexChanged.connect(self.updateAction)
         form.list_action.setCellWidget(self.rowNumber,2, combo)
 
 
         form.list_action.setItem(self.rowNumber,4,QtWidgets.QTableWidgetItem())
-        form.list_action.setCellWidget(self.rowNumber,4, self.MakeActionSelector(inputType, action))
+        form.list_action.setCellWidget(self.rowNumber,4, self.Make.ActionSelector(inputType, action))
 
         form.list_action.setItem(self.rowNumber,3,QtWidgets.QTableWidgetItem())
-        form.list_action.setCellWidget(self.rowNumber,3, self.MakeInputDeviceList(deviceID))
+        form.list_action.setCellWidget(self.rowNumber,3, self.Make.InputDeviceList(deviceID))
 
 
 
@@ -592,17 +591,6 @@ class EditTable():
 
         self.rowNumber+=1
 
-    @Slot(str,str)
-    def testing(self,type, msg):
-        #logging.debug(type)
-        form.testlabel2.setText(msg)
-        #form.testlabel.setText(type)
-    # Add one full row at a time,
-    # Add actions in class to handle when things change in drop down
-    #Pre populate drop down.
-    # or set it up so that an edit area is populated on a click
-    # Lets go with # 2 for now
-
 class qtobsmidi(QMainWindow):
     def currentIndexChanged(self, qmodelindex):
             item = self.InputTypeSelector.currentItem()
@@ -635,8 +623,6 @@ class newobs():
     def on_event(self, message):
         QApplication.processEvents()
         logging.debug(u"Got message: {}".format(message))
-
-
     def on_switch(self, message):
         logging.debug(u"You changed the scene to {}".format(message.getSceneName()))
     def getSpecialSources(self):
@@ -756,14 +742,9 @@ def myExitHandler():
 
     app.quit
     #sys.exit(app.exec_())
-
-
-
-
 def startStopBtnHandle():
     global btnStart
     if btnStart == False:
-
        startOBSconnection()
        form.btn_Start.setText("Stop")
        btnStart = True
@@ -771,33 +752,23 @@ def startStopBtnHandle():
         stopOBSconnection()
         form.btn_Start.setText("Start")
         btnStart = False
-
 def startOBSconnection():
-    #Disconnect from setup connection to obs and Midi
-    #Call OBSMIDI script
-    #OBS.start()
     tray.showMessage("Connecting","Connecting to OBS",icon)
     OBS.connect()
-    #logging.debug("Connecting to OBS")
 def stopOBSconnection():
-    icon.Off
-    #OBS.stop()
     OBS.disconnect()
     tray.showMessage("Disconnecting","disconnecting from OBS",icon)
 def map_scale(inp, ista, isto, osta, osto):
     return osta + (osto - osta) * ((inp - ista) / (isto - ista))
-def get_logger(name, level=logging.debug):
+def get_logger( level=logging.debug):
    log_format = logging.Formatter('[%(asctime)s] (%(levelname)s) T%(thread)d : %(message)s')
-
    std_output = logging.StreamHandler(stdout)
    std_output.setFormatter(log_format)
    std_output.setLevel(level)
-
    file_output = logging.FileHandler(path.join(SCRIPT_DIR, "debug.log"))
    file_output.setFormatter(log_format)
    file_output.setLevel(level)
-
-   logger = logging.getLogger(name)
+   logger = logging.getLogger()
    logger.setLevel(logging.DEBUG)
    logger.addHandler(file_output)
    logger.addHandler(std_output)
@@ -825,9 +796,7 @@ def ScriptExit(signal, frame):
     logging.debug("Exiting...")
     sys.exit(0)
 if __name__ == "__main__":
-    format = "%(asctime)s: %(message)s"
-    logging.basicConfig(format=format, level=logging.INFO, datefmt="%H:%M:%S")
-
+    get_logger(logging.INFO)
     signal.signal(signal.SIGINT, ScriptExit)
     Form, Window = uic.loadUiType("qtOBSMIDI.ui")
 
@@ -876,7 +845,7 @@ if __name__ == "__main__":
     form.btn_test.clicked.connect(OBS.test)
 
     #Setup Connection for adding to table
-    midi.SendMessage.connect(editTable.testing)
+    #midi.SendMessage.connect(editTable.testing)
 
     #form.list_action.itemSelectionChanged.connect(editTable.updateAction)
     #form.list_action.itemSelectionChanged.connect(editTable.updateAction)
