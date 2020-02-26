@@ -104,7 +104,7 @@ actionList   = {"StartStopReplayBuffer":     [0],
                 "StartReplayBuffer":         [0],
                 "StopReplayBuffer":          [0],
                 "SaveReplayBuffer":          [0],
-                "SetTransitionDuration":     [0],                                 # <=duration
+                "SetTransitionDuration":     [0],
                 "StartStopStreaming":        [0],
                 "StartStreaming":            [0],
                 "StopStreaming":             [0],
@@ -113,31 +113,47 @@ actionList   = {"StartStopReplayBuffer":     [0],
                 "StopRecording":             [0],
                 "PauseRecording":            [0],
                 "ResumeRecording":           [0],
-                "TakeSourceScreenshot":      [1,  'source',                       "self.Make.SourceSelector(row, col, extra)"],                                                               # Source
-                "ToggleMute":                [1,  'source',                       "self.Make.SourceSelector(row, col, extra)"],                                                               # Source
-                "SetVolume":                 [1,  'source',                       "self.Make.VolumeSelector(row, col, extra)"],                                                               # source <-volume
-                "SetCurrentScene":           [1,  'scene-name',                   "self.Make.SceneSelector(row, col, extra)"],                                                         # Scene
-                "SetPreviewScene":           [1,  'scene-name',                   "self.Make.SceneSelector(row, col, extra)"],                                                         # Scene
-                "TransitionToProgram":       [1,  'scene-name',                   "self.Make.SceneSelector(row, col, extra)"],                                                         # Scene
-                "SetCurrentTransition":      [1,  'transition',                   "self.Make.TransitionSelector(row, col, extra)"],                                                    # Scenee1,   # Transition
-                "SetCurrentProfile":         [1,  'profile',                      "self.Make.ProfileSelector(row, col, extra)"],                                                       # Profile
-                "SetCurrentSceneCollection": [1,  'sc-name',                      "self.Make.SceneCollectionSelector(row, col, extra)"],                                               # sc-name
-                "ResetSceneItem":            [1,  'item',                         "self.Make.ItemSelector(row, col, extra)"],                                                          # Item
-                "SetMute":                   [2,  'source', 'bool',               "self.Make.VolumeSelector(row, col, extra)",                    "self.Make.Checkbox(row,col)"],              # Source, bool
-                "SetSyncOffset":             [2,  'source', 'offset',             "self.Make.SourceSelector(row, col, extra)",                    "self.Make.OffsetSelector(row,col)"],        # Source, Offset
-                "ReloadBrowserSource":       [2,  'source', 'url',                "self.Make.SourceSelector(row, col, extra)",                    "self.Make.URLSelector(row,col)"    ],       # Source, URL
-                "EnableSourceFilter":        [2,  'source', 'filter',             "self.Make.SourceSelector(row, col, extra)",                    "self.Make.FilterSelector(row,col)",],       # Source, Filter
-                "DisableSourceFilter":       [2,  'source', 'filter',             "self.Make.SourceSelector(row, col, extra)",                    "self.Make.FilterSelector(row,col)",],       # Source, Filter
-                "SetTextGDIPlusText":        [2,  'source', 'text',               "self.Make.SourceSelector(row, col, extra)",                    "self.Make.TextboxSelector(row,col)"],            # Source, Text
-                "SetBrowserSourceURL":       [2,  'source', 'url',                "self.Make.SourceSelector(row, col, extra)",                    "self.Make.URLSelector(row,col)"],           # Source, URL
-                "SetSourceVisibility":       [2,  'item', 'bool',                 "self.Make.ItemSelector(row, col, extra)",                      "self.Make.Checkbox(row,col)"],              # Item, Bool(visible)
-                "ToggleSourceVisibility":    [2,  'item', 'bool',                 "self.Make.ItemSelector(row, col, extra)",                      "self.Make.Checkbox(row,col)"],              # Item, Bool(visible)
-                "SetSourceScale":            [3,  'source', 'item', 'scale',      "self.Make.SourceSelector(row, col, extra)",                    "self.Make.ItemSelector(row, col, extra)",   "self.makeScaleSelector(row,col)"],      # Scene, Item, Scale
-                "SetSourcePosition":         [3,  'source', 'item', 'position',   "self.Make.SourceSelector(row, col, extra)",                    "self.Make.ItemSelector(row, col, extra)",   "self.makePositionSelector(row,col)"],   # Scene, Item, Position
-                "SetSourceRotation":         [3,  'source', 'item', 'rotation',   "self.Make.SourceSelector(row, col, extra)",                    "self.Make.ItemSelector(row, col, extra)",   "self.makeRotationSelector(row,col)"],   # Scene, Item, Rotation
-                "SetGainFilter":             [3,  'source', 'filter', 'db',       "self.Make.SourceSelector(row, col, extra)",                    "self.Make.FilterSelector(row,col)",         "self.makeDBSelector(row,col)"],         # SOurce, Filter, Setting.DB
-                "ToggleSourceFilter":        [3,  'source', 'filter', 'bool',     "self.Make.SourceSelector(row, col, extra)",                    "self.Make.FilterSelector(row,col)",         "self.makeCheckbox(row,col)"]            # Source, Filter, <-Bool
+                "TakeSourceScreenshot":      [1,  'source'                          ],
+                "ToggleMute":                [1,  'source'                          ],
+                "SetVolume":                 [1,  'source'                          ],
+                "SetCurrentScene":           [1,  'scene-name'                      ],
+                "SetPreviewScene":           [1,  'scene-name'                      ],
+                "TransitionToProgram":       [1,  'scene-name'                      ],
+                "SetCurrentTransition":      [1,  'transition'                      ],
+                "SetCurrentProfile":         [1,  'profile'                         ],
+                "SetCurrentSceneCollection": [1,  'sc-name'                         ],
+                "ResetSceneItem":            [1,  'item'                            ],
+                "SetMute":                   [2,  'source', 'bool'                  ],
+                "SetSyncOffset":             [2,  'source', 'offset'                ],
+                "ReloadBrowserSource":       [2,  'source', 'url'                   ],
+                "EnableSourceFilter":        [2,  'source', 'filter'                ],
+                "DisableSourceFilter":       [2,  'source', 'filter'                ],
+                "SetTextGDIPlusText":        [2,  'source', 'text'                  ],
+                "SetBrowserSourceURL":       [2,  'source', 'url'                   ],
+                "SetSourceVisibility":       [2,  'item',   'bool'                  ],
+                "ToggleSourceVisibility":    [2,  'item',   'bool'                  ],
+                "SetSourceScale":            [3,  'source', 'item',     'scale'     ],
+                "SetSourcePosition":         [3,  'source', 'item',     'position'  ],
+                "SetSourceRotation":         [3,  'source', 'item',     'rotation'  ],
+                "SetGainFilter":             [3,  'source', 'filter',   'db'        ],
+                "ToggleSourceFilter":        [3,  'source', 'filter',   'bool'      ]
 }
+
+Actions={  "source"        :   "self.Make.SourceSelector(row, col, extra)"             ,
+           "scene-name"    :   "self.Make.SceneSelector(row, col, extra)"              ,
+           "transition"    :   "self.Make.TransitionSelector(row, col, extra)"         ,
+           'profile'       :   "self.Make.ProfileSelector(row, col, extra)"            ,
+           'sc-name'       :   "self.Make.SceneCollectionSelector(row, col, extra)"    ,
+           'item'          :   "self.Make.ItemSelector(row, col, extra)"               ,
+           'bool'          :   "self.Make.Checkbox(row,col)"                           ,
+           'position'      :   "self.makePositionSelector(row,col)"                    ,
+           'rotation'      :   "self.makeRotationSelector(row,col)"                    ,
+           'scale'         :   "self.makeScaleSelector(row,col)"                       ,
+           'offset'        :   "self.Make.OffsetSelector(row,col)"                     ,
+           'url'           :   "self.Make.URLSelector(row,col)"                        ,
+           'db'            :   "self.makeDBSelector(row,col)"                          ,
+           'text'          :   "self.Make.TextboxSelector(row,col)"                    ,
+           'filter'        :   "self.Make.FilterSelector(row,col)"                     }
 rowTemplate = { 1   :   "msg_type"      ,
                 2   :   "msgNoC"        ,
                 3   :   "input_type"    ,
@@ -281,7 +297,7 @@ class EditTable():
                 sceneCombo.addItem(source)
                 #logging.debug(scene)
 
-            sceneCombo.currentIndexChanged.connect(editTable.updateAction)
+            sceneCombo.currentIndexChanged.connect(EditTable.updateAction)
             form.list_action.setItem(row,col,QtWidgets.QTableWidgetItem())
             form.list_action.setCellWidget(row,col,sceneCombo)
         def BrowserSourceSelector(self, row, col, *existing):
@@ -438,10 +454,11 @@ class EditTable():
         self.insertblank(Blanks)
         actnum=0
         while actnum < x[0]:
-            y=x[0]+actnum+1
+            y=actnum+1
             act=x[y]
+            logging.info(act)
             actnum+=1
-            return eval(act)
+            return eval(Actions[act])
 
 
 
