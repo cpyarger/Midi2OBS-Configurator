@@ -269,9 +269,15 @@ class EditTable():
         def Combo(self,list, row, col, *existing):
             form.list_action.setItem(row,col,QtWidgets.QTableWidgetItem())
             Combo=QtWidgets.QComboBox()
+            Combo.setSizePolicy(QtWidgets.QSizePolicy.Expanding,QtWidgets.QSizePolicy.Fixed)
+
+
+
             for item in list:
                 Combo.addItem(str(item))
-            form.list_action.setItem(row,col,QtWidgets.QTableWidgetItem())
+            item=QtWidgets.QTableWidgetItem()
+
+            form.list_action.setItem(row,col,item)
             form.list_action.setCellWidget(row,col,Combo)
             if existing:
                 logging.info(existing[0])
@@ -283,6 +289,7 @@ class EditTable():
                     Combo.setCurrentIndex(x)
             else:
                 Combo.setCurrentIndex(0)
+
             Combo.currentIndexChanged.connect(EditTable.updateAction)
 
 
@@ -299,6 +306,13 @@ class EditTable():
             return box
     def disableCombo(self, Combo):
         Combo.setEnabled(False)
+    def removeRowbtn(self,row):
+        logging.info("remove row button")
+        box=QtWidgets.QPushButton()
+        box.setText("delete")
+        box.clicked.connect(self.updateAction)
+        form.list_action.setItem(row,8,QtWidgets.QTableWidgetItem())
+        form.list_action.setCellWidget(row,8,box)
 
 
     def enableCombo(self,Combo):
@@ -449,9 +463,10 @@ class EditTable():
         for each in x:
             row=each.row()
             col=each.column()
-            text=form.list_action.cellWidget(row, col).currentText()
+
             logging.info("Change in col: "+str(col))
             if col==2:
+                text=form.list_action.cellWidget(row, col).currentText()
                 logging.info("Changed Input type")
                 editTable.Make.Combo(ActionsType[text], row, 4, text)
 
@@ -467,15 +482,17 @@ class EditTable():
             elif col ==5:
                 logging.info("Changed Option 1")
                 action=form.list_action.cellWidget(row, 4).currentText()
-
-                editTable.SetupOptions(action,row,5)
+                #editTable.SetupOptions(action,row,6)
             elif col ==6:
                 action=form.list_action.cellWidget(row, 4).currentText()
-                editTable.SetupOptions(action,row,6)
+                #editTable.SetupOptions(action,row,6)
 
                 logging.info("Changed Option 2")
             elif col ==7:
                 logging.info("Changed Option 3")
+            elif col == 8:
+                form.list_action.removeRow(row)
+
 
 
 
@@ -501,6 +518,7 @@ class EditTable():
         self.Make.Combo(inpType, self.rowNumber, 2, inputType)
         self.Make.Combo(InList, self.rowNumber, 3, InList[int(deviceID)-1])
         self.Make.Combo(ActionsType[inputType], self.rowNumber, 4, action)
+        self.removeRowbtn(self.rowNumber)
         if option:
             self.SetupOptions(action,self.rowNumber,5,option)
 
@@ -696,6 +714,15 @@ class newobs():
         for each in sources.getTypes():
             if each['caps']['hasAudio'] == True:
                 specialSourcesList.append(each['displayName'])
+    def getTransitionList(self):
+        sources = self.ws.call(requests.GetTransitionList())
+        for each in sources.getTransitions():
+            logging.info(each)
+            #transitionList.append(each)
+            transitionList.append(each["name"])
+
+
+
 def ResetMidiController():
     outport= mido.open_output("X-TOUCH COMPACT 1")
     counter=0
@@ -799,6 +826,7 @@ if __name__ == "__main__":
     OBS.getSpecialSources()
     OBS.getSourceList()
     OBS.getSourceTypesList()
+    OBS.getTransitionList()
     midi=handler()
     editTable=EditTable(form)
 
