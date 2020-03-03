@@ -9,8 +9,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1242</width>
-    <height>881</height>
+    <width>1088</width>
+    <height>878</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -62,7 +62,7 @@
      <rect>
       <x>0</x>
       <y>11</y>
-      <width>1241</width>
+      <width>1101</width>
       <height>841</height>
      </rect>
     </property>
@@ -735,7 +735,7 @@
      <item row="2" column="0">
       <widget class="QTableWidget" name="list_action">
        <property name="sizePolicy">
-        <sizepolicy hsizetype="Expanding" vsizetype="MinimumExpanding">
+        <sizepolicy hsizetype="MinimumExpanding" vsizetype="MinimumExpanding">
          <horstretch>10</horstretch>
          <verstretch>10</verstretch>
         </sizepolicy>
@@ -1194,12 +1194,6 @@
          <pointsize>8</pointsize>
         </font>
        </property>
-       <property name="contextMenuPolicy">
-        <enum>Qt::NoContextMenu</enum>
-       </property>
-       <property name="sizeAdjustPolicy">
-        <enum>QAbstractScrollArea::AdjustToContents</enum>
-       </property>
        <property name="alternatingRowColors">
         <bool>true</bool>
        </property>
@@ -1213,7 +1207,7 @@
         <bool>false</bool>
        </property>
        <attribute name="horizontalHeaderCascadingSectionResizes">
-        <bool>true</bool>
+        <bool>false</bool>
        </attribute>
        <attribute name="horizontalHeaderMinimumSectionSize">
         <number>100</number>
@@ -1225,10 +1219,10 @@
         <bool>false</bool>
        </attribute>
        <attribute name="horizontalHeaderStretchLastSection">
-        <bool>false</bool>
+        <bool>true</bool>
        </attribute>
        <attribute name="verticalHeaderVisible">
-        <bool>true</bool>
+        <bool>false</bool>
        </attribute>
        <attribute name="verticalHeaderShowSortIndicator" stdset="0">
         <bool>false</bool>
@@ -1271,11 +1265,6 @@
        <column>
         <property name="text">
          <string>Option 3</string>
-        </property>
-       </column>
-       <column>
-        <property name="text">
-         <string>Delete</string>
         </property>
        </column>
       </widget>
@@ -1342,7 +1331,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>1242</width>
+     <width>1088</width>
      <height>21</height>
     </rect>
    </property>
