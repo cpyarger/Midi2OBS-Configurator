@@ -16,6 +16,7 @@ from PyQt5.QtCore import   pyqtSlot, pyqtSignal
 import  sys,  signal
 from tinydb import TinyDB, Query
 import asyncio
+import asyncws
 from websocket import WebSocketApp, create_connection
 import obswebsocket, obswebsocket.requests
 from obswebsocket import obsws, events, requests  # noqa: E402
@@ -133,20 +134,20 @@ actionList   = {"StartStopReplayBuffer":     [0],
                 "ToggleSourceFilter":        [3,  'source', 'filter',   'bool'      ]
 }
 
-Actions={  "source"        :   "self.Make.Combo(sourceListShort,                row, col, extra)"   ,
-           "scene-name"    :   "self.Make.Combo(sceneListShort,                 row, col, extra)"   ,
-           "transition"    :   "self.Make.Combo(transitionList,                 row, col, extra)"   ,
-           'profile'       :   "self.Make.Combo(profilesList,                   row, col, extra)"   ,
-           'sc-name'       :   "self.Make.Combo(sceneCollectionList,            row, col, extra)"   ,
-           'item'          :   "self.Make.Combo(itemList,                       row, col, extra)"   ,
-           'bool'          :   "self.Make.Checkbox(                             row,col)"           ,
-           'position'      :   "self.Make.Position(                             row,col)"           ,
-           'rotation'      :   "self.Make.Rotation(                             row,col)"           ,
-           'scale'         :   "self.Make.Scale(                                row,col)"           ,
-           'offset'        :   "self.Make.Offset(                               row,col)"           ,
-           'url'           :   "self.Make.URL(                                  row,col)"           ,
-           'db'            :   "self.Make.DB(                                   row,col)"           ,
-           'text'          :   "self.Make.Textbox(                              row,col)"           ,
+Actions={  "source"        :   "self.Make.Combo(sourceListShort,                            row, col, extra)"   ,
+           "scene-name"    :   "self.Make.Combo(sceneListShort,                             row, col, extra)"   ,
+           "transition"    :   "self.Make.Combo(transitionList,                             row, col, extra)"   ,
+           'profile'       :   "self.Make.Combo(profilesList,                               row, col, extra)"   ,
+           'sc-name'       :   "self.Make.Combo(sceneCollectionList,                        row, col, extra)"   ,
+           'item'          :   "self.Make.Combo(itemList,                                   row, col, extra)"   ,
+           'bool'          :   "self.Make.Checkbox(                                         row,col)"           ,
+           'position'      :   "self.Make.Position(                                         row,col)"           ,
+           'rotation'      :   "self.Make.Rotation(                                         row,col)"           ,
+           'scale'         :   "self.Make.Scale(                                            row,col)"           ,
+           'offset'        :   "self.Make.Offset(                                           row,col)"           ,
+           'url'           :   "self.Make.URL(                                              row,col)"           ,
+           'db'            :   "self.Make.DB(                                               row,col)"           ,
+           'text'          :   "self.Make.TextInput(                                        row,col)"           ,
            'filter'        :   "self.Make.Combo(self.Update.filter(sourceListShort[0]),     row,col)"           }
 rowTemplate = { 1   :   "msg_type"      ,
                 2   :   "msgNoC"        ,
@@ -190,6 +191,219 @@ try:
     import thread
 except ImportError:
     import _thread as thread
+class asyncOBS():
+    def __init__(self,config_path="config.json", ws_server="localhost", ws_port=4444):
+
+        # Internal service variables
+        self._action_buffer = []
+        self._action_counter = 2
+        self._portobjects = []
+
+        #load tinydb configuration database
+        logging.debug("Trying to load config file  from %s" % config_path)
+        tiny_database = TinyDB(config_path, indent=4)
+        tiny_db = tiny_database.table("keys", cache_size=20)
+        tiny_devdb = tiny_database.table("devices", cache_size=20)
+
+        #get all mappings and devices
+        self._mappings = tiny_db.all()
+        self._devices = tiny_devdb.all()
+
+        #open dbj datebase for mapping and clear
+        self.mappingdb = dbj("temp-mappingdb.json")
+        self.mappingdb.clear()
+
+        #convert database to dbj in-memory
+        for _mapping in self._mappings:
+            self.mappingdb.insert(_mapping)
+
+        logging.debug("Mapping database: `%s`" % str(self.mappingdb.getall()))
+
+        if len(self.mappingdb.getall()) < 1:
+            logging.critical("Could not cache device mappings")
+            # ENOENT (No such file or directory)
+            exit(2)
+
+        logging.debug("Successfully imported mapping database")
+
+        result = tiny_devdb.all()
+        if not result:
+            logging.critical("Config file %s doesn't exist or is damaged" % config_path)
+            # ENOENT (No such file or directory)
+            exit(2)
+
+        logging.info("Successfully parsed config file")
+
+        logging.debug("Retrieved MIDI port name(s) `%s`" % result)
+
+
+        # close tinydb
+        tiny_database.close()
+
+        # setting up a Websocket client
+        logging.debug("Attempting to connect to OBS using websocket protocol")
+        self.obs_socket = WebSocketApp("ws://%s:%d" % (ws_server, ws_port))
+
+    def handle_midi_fader(self, deviceID, control, value):
+            results = self.mappingdb.getmany(self.mappingdb.find('msg_type == "control_change" and msgNoC == %s and deviceID == %s' % (control, deviceID)))
+
+            if not results:
+                logging.debug("Cound not find action for fader %s", control)
+                return
+
+            for result in results:
+                input_type = result["input_type"]
+                action = result["action"]
+
+                if input_type == "button":
+                    if value == 127 and not self.send_action(result):
+                        continue
+
+                if input_type == "fader":
+                    command = result["cmd"]
+                    scaled = map_scale(value, 0, 127, result["scale_low"], result["scale_high"])
+
+                    if command == "SetSourceScale":
+                        self.obs_socket.send(action.format(scaled))
+
+                    # Super dirty hack but @AlexDash says that it works
+                    # @TODO: find an explanation _why_ it works
+                    if command == "SetVolume":
+                        # Yes, this literally raises a float to a third degree
+                        self.obs_socket.send(action % scaled**3)
+
+                    if command == "SetGainFilter":
+                        self.obs_socket.send(action % scaled)
+
+                    if command == "SetSourceRotation" or command == "SetTransitionDuration" or command == "SetSyncOffset" or command == "SetSourcePosition":
+                        self.obs_socket.send(action % int(scaled))
+    def handle_obs_message(self, message):
+            self.log.debug("Received new message from OBS")
+            payload = json.loads(message)
+
+            self.log.debug("Successfully parsed new message from OBS: %s" % message)
+
+            if "error" in payload:
+                self.log.error("OBS returned error: %s" % payload["error"])
+                return
+
+            message_id = payload["message-id"]
+
+            self.log.debug("Looking for action with message id `%s`" % message_id)
+            for action in self._action_buffer:
+                (buffered_id, template, kind) = action
+
+                if buffered_id != int(payload["message-id"]):
+                    continue
+
+                del buffered_id
+                self.log.info("Action `%s` was requested by OBS" % kind)
+
+                if kind == "ToggleSourceVisibility":
+                    # Dear lain, I so miss decent ternary operators...
+                    invisible = "false" if payload["visible"] else "true"
+                    self.obs_socket.send(template % invisible)
+                elif kind == "ReloadBrowserSource":
+                    source = payload["sourceSettings"]["url"]
+                    target = source[0:-1] if source[-1] == '#' else source + '#'
+                    self.obs_socket.send(template % target)
+                elif kind == "ToggleSourceFilter":
+                    invisible = "false" if payload["enabled"] else "true"
+                    self.obs_socket.send(template % invisible)
+
+                self.log.debug("Removing action with message id %s from buffer" % message_id)
+                self._action_buffer.remove(action)
+                break
+
+            if message_id == "MIDItoOBSscreenshot":
+                if payload["status"] == "ok":
+                    with open(str(time()) + ".png", "wb") as fh:
+                        fh.write(base64.decodebytes(payload["img"][22:].encode()))
+
+
+    def handle_obs_error(self, ws, error=None):
+        # Protection against potential inconsistencies in `inspect.ismethod`
+        if error is None and isinstance(ws, BaseException):
+            error = ws
+
+        if isinstance(error, (KeyboardInterrupt, SystemExit)):
+            self.log.info("Keyboard interrupt received, gracefully exiting...")
+            self.close(teardown=True)
+        else:
+            self.log.error("Websocket error: %" % str(error))
+
+    def handle_obs_close(self, ws):
+        self.log.error("OBS has disconnected, timed out or isn't running")
+        self.log.error("Please reopen OBS and restart the script")
+
+    def handle_obs_open(self, ws):
+        self.log.info("Successfully connected to OBS")
+
+    def send_action(self, action_request):
+        action = action_request.get("action")
+        if not action:
+            # @NOTE: this potentionally should never happen but you never know
+            self.log.error("No action supplied in current request")
+            return False
+
+        request = action_request.get("request")
+        if not request:
+            self.log.debug("No request body for action %s, sending action" % action)
+            self.obs_socket.send(action)
+            # Success, breaking the loop
+            return True
+
+        template = TEMPLATES.get(request)
+        if not template:
+            self.log.error("Missing template for request %s" % request)
+            # Keep searching
+            return False
+
+        target = action_request.get("target")
+        if not target:
+            self.log.error("Missing target in %s request for %s action" % (request, action))
+            # Keep searching
+            return False
+
+        field2 = action_request.get("field2")
+        if not field2:
+            field2 = False
+
+        self._action_buffer.append([self._action_counter, action, request])
+        if field2:
+            self.obs_socket.send(template % (self._action_counter, target, field2))
+        else:
+            self.obs_socket.send(template % (self._action_counter, target))
+        self._action_counter += 1
+
+        # Explicit return is necessary here to avoid extra searching
+        return True
+
+    def start(self):
+        self.log.info("Connecting to OBS...")
+        self.obs_socket.run_forever()
+
+    def close(self, teardown=False):
+        self.log.debug("Attempting to close midi port(s)")
+        result = self.devdb.all()
+        for device in result:
+            device.close()
+
+        self.log.info("Midi connection has been closed successfully")
+
+        # If close is requested during keyboard interrupt, let the websocket
+        # client tear itself down and make a clean exit
+        if not teardown:
+            self.log.debug("Attempting to close OBS connection")
+            self.obs_socket.close()
+
+            self.log.info("OBS connection has been closed successfully")
+
+        self.log.info("Config file has been successfully released")
+
+    def __end__(self):
+        self.log.info("Exiting script...")
+        self.close()
 class handler(QtCore.QObject):
     closed=pyqtSignal()
     SendMessage=pyqtSignal(str,str,name="SendMessage")
@@ -201,9 +415,17 @@ class handler(QtCore.QObject):
         if message.type == "note_on":
             if  entryExists(message.note)!=True:
                 self.SendMessage.emit( "note_on", str(message.note))
+            else:
+                editTable.actRow(getRow(message.note),message)
+
         elif message.type == "control_change":
             if entryExists(message.control)!=True:
                 self.SendMessage.emit( "control_change", str(message.control))
+            elif entryExists(message.control):
+                editTable.actRow(getRow(message.control),message)
+
+
+
     def connectToDevice(self):
         devices = devdb.all()
         #multi=Multi.MultiPort(devices,yield_ports=True)
@@ -239,7 +461,15 @@ class EditTable():
             option="".join(res[x[x[0]]])
             self.addRow(str(RowData["msg_type"]),str(RowData["msgNoC"]),str(RowData["input_type"]),str(res["request-type"]),str(RowData["deviceID"]),option)
         self.table()
-
+    def actRow(self,row,msg):
+        logging.info(row)
+        logging.info(msg)
+        act=form.list_action.cellWidget(row, 4).currentText()
+        scene=form.list_action.cellWidget(row, 5).currentText()
+        if msg.type =="control_change":
+            OBS2.handle_midi_fader( 1, msg.control, msg.value)
+            #OBS.setVolume(scene, msg.value)
+        logging.info(act)
     def GetSource(self, row):
         text=form.list_action.cellWidget(row, 5).currentText()
         return text
@@ -271,7 +501,11 @@ class EditTable():
             Combo=QtWidgets.QComboBox()
             for item in list:
                 Combo.addItem(str(item))
+
+
             form.list_action.setItem(row,col,QtWidgets.QTableWidgetItem())
+            width = Combo.minimumSizeHint().width()
+            Combo.view().setMinimumWidth(width)
             form.list_action.setCellWidget(row,col,Combo)
             if existing:
                 logging.info(existing[0])
@@ -284,6 +518,7 @@ class EditTable():
             else:
                 Combo.setCurrentIndex(0)
             Combo.currentIndexChanged.connect(EditTable.updateAction)
+
 
 
         def Checkbox(self, row, col=6, *existing):
@@ -547,9 +782,14 @@ class qtobsmidi(QMainWindow):
 
 
 class newobs():
-    def __init__(self, host = "localhost", port= 4444, password= "banana"):
-        self.ws = obsws(host, port)
-        #self.ws.register(self.on_event)
+    def __init__(self, host = "localhost", port= 4444, password= ""):
+        if password !="":
+            self.ws = obsws(host, port, password)
+        else:
+            self.ws = obsws(host, port)
+        self.ws.register(self.on_event)
+        self.ws.register(self.on_vol, events.SourceVolumeChanged)
+
         #self.ws.register(self.on_switch, events.SwitchScenes)
         QApplication.processEvents()
         self.get_inputs()
@@ -583,75 +823,24 @@ class newobs():
             count+=1
     def on_event(self, message):
         QApplication.processEvents()
-        logging.debug(u"Got message: {}".format(message))
+        logging.info(u"OBSWS: Got message: {}".format(message))
     def on_switch(self, message):
         logging.debug(u"You changed the scene to {}".format(message.getSceneName()))
+    def on_vol(self, message):
+        logging.debug("Changed volume")
     def getSpecialSources(self):
+        tries=["scenes.getDesktop1()","scenes.getMic1()","scenes.getDesktop2()","scenes.getMic2()","scenes.getDesktop3()","scenes.getMic3()","scenes.getDesktop4()","scenes.getMic4()","scenes.getDesktop5()","scenes.getMic5()",]
         sources=specialSourcesList
         scenes = self.ws.call(requests.GetSpecialSources())
         #logging.debug(scenes    )
-        try:
-            scenes.getDesktop1()
+        for each in tries:
+            try:
+                x= eval(each)
 
-        except:
-            logging.debug("test failed")
-        else:
-            sources.append(scenes.getDesktop1())
-        try:
-            scenes.getDesktop2()
-        except:
-            logging.debug("desk 2 input failed")
-        else:
-            sources.append(scenes.getDesktop2())
-        try:
-            scenes.getDesktop3()
-        except:
-            logging.debug("desk 3 input failed")
-        else:
-            sources.append(scenes.getDesktop3())
-        try:
-            scenes.getDesktop4()
-        except:
-            logging.debug("desk 4 input failed")
-        else:
-            sources.append(scenes.getDesktop4())
-        try:
-            scenes.getDesktop5()
-        except:
-            logging.debug("desk 5 input failed")
-        else:
-            sources.append(scenes.getDesktop5())
-        try:
-            scenes.getMic1()
-        except:
-            logging.debug("mic1 failed")
-        else:
-            sources.append(scenes.getMic1())
-        try:
-            scenes.getMic2()
-        except:
-            logging.debug("Mic 2 input failed")
-        else:
-            sources.append(scenes.getMic2())
-        try:
-            scenes.getMic3()
-        except:
-            logging.debug("mic 3 input failed")
-        else:
-            sources.append(scenes.getMic3())
-        try:
-            scenes.getMic4()
-        except:
-            logging.debug("mic 4 input failed")
-        else:
-            sources.append(scenes.getMic4())
-        try:
-            scenes.getMic5()
-        except:
-            logging.debug("mic 5 input failed")
-        else:
-            sources.append(scenes.mic5())
-        #logging.debug(sources)
+            except:
+                logging.debug("test failed")
+            else:
+                sources.append(x)
         return sources
     def test(self):
         logging.debug("test")
@@ -692,6 +881,12 @@ class newobs():
         for each in sources.getTypes():
             if each['caps']['hasAudio'] == True:
                 specialSourcesList.append(each['displayName'])
+    def setVolume(self, source, vol):
+        mapvol=map_scale(vol, 0, 127, 0, 1)
+
+        deviceID, control, value
+        self.ws.call(requests.SetVolume(source, mapvol))
+
 def ResetMidiController():
     outport= mido.open_output("X-TOUCH COMPACT 1")
     counter=0
@@ -755,6 +950,14 @@ def entryExists(value):
         return True
     else:
         return False
+def getRow(value):
+    x=form.list_action.findItems(str(value), QtCore.Qt.MatchExactly | QtCore.Qt.MatchRecursive)
+    if x!=[]:
+        return x[0].row()
+
+    else:
+        return False
+
 
     #used for connecting Midi to obs for actually controlling OBS
             #logging.info(str(each['hasAudio']))
@@ -787,7 +990,7 @@ if __name__ == "__main__":
 
     #initialize table
 
-    # Setup external MidiToOBS Script
+    OBS2=asyncOBS()    # Setup external MidiToOBS Script
 
     OBS=newobs()
     OBS.connect()
@@ -808,6 +1011,7 @@ if __name__ == "__main__":
     tray.setIcon(icon)
     tray.setContextMenu(Menu)
     actionStart=Menu.addAction("start")
+
     actionStop=Menu.addAction("Stop")
     actionQuit=Menu.addAction("Quit")
 
@@ -817,9 +1021,10 @@ if __name__ == "__main__":
     actionStop.triggered.connect(stopOBSconnection)
     midi.SendMessage.connect(editTable.AddNewRow)
     actionQuit.triggered.connect(app.quit)
-    form.btn_SaveTable.clicked.connect(editTable.saveTable)
-    form.btn_Start.clicked.connect(startStopBtnHandle)
-    form.btn_test.clicked.connect(OBS.test)
+    #form.btn_SaveTable.clicked.connect(editTable.saveTable)
+    #form.btn_Start.clicked.connect(startStopBtnHandle)
+    #form.btn_test.clicked.connect(OBS.test)
+    form.actionSave.triggered.connect(editTable.saveTable)
 
     #Setup Connection for adding to table
     #midi.SendMessage.connect(editTable.testing)

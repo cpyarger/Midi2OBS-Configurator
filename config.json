@@ -27,7 +27,7 @@
             "msgNoC": 1,
             "input_type": "fader",
             "scale_low": 0,
-            "scale_high": 2,
+            "scale_high": 1,
             "action": "{\"request-type\": \"SetVolume\", \"message-id\" : \"1\", \"source\": \"Desktop Audio\", \"volume\": \"%s\"}",
             "cmd": "SetVolume",
             "deviceID": 1
@@ -37,7 +37,7 @@
             "msgNoC": 2,
             "input_type": "fader",
             "scale_low": 0,
-            "scale_high": 2,
+            "scale_high": 1,
             "action": "{\"request-type\": \"SetVolume\", \"message-id\" : \"1\", \"source\": \"Mic/Aux\", \"volume\": \"%s\"}",
             "cmd": "SetVolume",
             "deviceID": 1
