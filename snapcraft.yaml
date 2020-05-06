@@ -5,7 +5,7 @@ base: core18
 version: "master"
 parts: 
   midi2obsconfig:
-    source: .
+    source: https://github.com/cpyarger/Midi2OBS-Configurator.git
     plugin: python
     requirements: [requirements.txt]
 
