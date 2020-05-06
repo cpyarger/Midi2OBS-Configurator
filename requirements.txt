@@ -5,3 +5,7 @@ python-rtmidi==1.4.0
 dbj==0.1.6
 aiohttp >=0
 asyncio >0
+pyside2
+pyqt5
+asyncws
+obs-websocket-py

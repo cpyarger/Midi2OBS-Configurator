@@ -1,3 +1,4 @@
+#!/usr/bin/python3
 # This Python file uses the following encoding: utf-8
 from __future__ import division
 from sys import exit, stdout
