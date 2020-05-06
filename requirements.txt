@@ -9,3 +9,5 @@ pyside2
 pyqt5
 asyncws
 obs-websocket-py
+setuptools
+wheel

@@ -1,0 +1,17 @@
+name: midi2obsconfig
+summary: MIDI 2 OBS Configuration tool
+description: This script let's you use one or multiple MIDI controllers to switch scenes, start/stop recording/streaming, control volume/gain/opacity/delay/transition time and more in obs-studio.
+base: core18
+version: "master"
+parts: 
+  midi2obsconfig:
+    source: .
+    plugin: python
+    requirements: [requirements.txt]
+
+
+apps:
+  Midi2OBSconfig:
+    command: qtobsmidi.py 
+confinement: devmode
+
